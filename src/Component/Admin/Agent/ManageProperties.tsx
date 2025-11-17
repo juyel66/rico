@@ -102,8 +102,8 @@ const ManageProperties = () => {
         {/* Header */}
         <header className="mb-8 border-b border-gray-100 pb-4">
           <Link
-            to="/admin-agent"
-            className="flex items-center text-gray-500 hover:text-gray-800 transition-colors mb-4"
+            to="/dashboard/admin-agent"
+            className="flex items-center text-gray-500   w-15 hover:text-gray-800 transition-colors mb-4"
             onClick={() => console.log('Back button clicked')}
             aria-label="Back to Agent List"
           >
