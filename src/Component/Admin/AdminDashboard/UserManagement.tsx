@@ -327,7 +327,7 @@ export default function UserManagement() {
       <div>
         {/* TOP ROW: role filter, centered search, title + total count */}
         <div className="mb-6 flex flex-col items-center justify-center gap-4">
-          <h1 className="text-lg sm:text-xl font-semibold mb-1 text-center">User Management</h1>
+          <h1 className="text-2xl sm:text-3xl font-semibold mb-1">User Management</h1>
 
           {/* total count */}
           <div className="text-sm text-gray-600 mb-1">Total users: <strong>{users.length}</strong></div>
