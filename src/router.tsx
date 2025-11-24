@@ -35,7 +35,7 @@ import ManageProperties from "./Component/Admin/Agent/ManageProperties";
 
 import PropertiesRentals from "./Component/Agent/PropertiesSales/PropertiesRentals";
 import PropertiesSales from "./Component/Agent/PropertiesSales/PropertiesSales";
-import Calendars from "./Component/Agent/Calendars/Calendars";
+import Calendars from "./Component/Agent/Calendars/AgentCalendars";
 import Resources from "./Component/Agent/Resources/Resources";
 import FAQs from "./Component/Agent/FaQs/FAQs";
 import Profile from "./Component/Agent/Profile/Profile";
