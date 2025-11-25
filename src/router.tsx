@@ -133,7 +133,7 @@ export const router = createBrowserRouter([
           { path: "agent-resources", element: <Resources /> },
           { path: "agent-faqs", element: <FAQs /> },
           { path: "agent-profile", element: <Profile /> },
-          { path: "agent-property-rentals-details", element: <PropertiesRentalsDetails /> },
+          { path: "agent-property-rentals-details/:id", element: <PropertiesRentalsDetails /> },
           { path: "agent-property-sales-details", element: <PropertiesSalesDetails /> },
         ],
       },

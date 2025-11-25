@@ -1,3 +1,4 @@
+// src/store/propertyBookingSlice.ts
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
 export const API_BASE =
@@ -16,6 +17,11 @@ export const getAccessToken = () => {
   }
 };
 
+/**
+ * authFetch: convenience wrapper
+ * - If options.body is FormData, it will NOT set Content-Type (browser sets the multipart boundary)
+ * - If options.headers already contains 'Content-Type', we will not override it.
+ */
 const authFetch = (url: string, options: any = {}) => {
   const headers: any = { ...(options.headers || {}) };
   const access = getAccessToken();
@@ -23,8 +29,14 @@ const authFetch = (url: string, options: any = {}) => {
   if (access) headers["Authorization"] = `Bearer ${access}`;
 
   const isForm = options.body instanceof FormData;
-  if (!isForm) headers["Content-Type"] = "application/json";
-  else delete headers["Content-Type"];
+  // Only set json content-type when not sending FormData and not already set by caller
+  if (!isForm && !("Content-Type" in headers)) {
+    headers["Content-Type"] = "application/json";
+  }
+  if (isForm && "Content-Type" in headers) {
+    // ensure the Content-Type header isn't forcing application/json for FormData
+    delete headers["Content-Type"];
+  }
 
   return fetch(url, { ...options, headers });
 };
@@ -78,7 +90,6 @@ export const fetchProperties = createAsyncThunk(
       const data = await res.json();
       if (!res.ok) throw data;
       return data;
-      
     } catch (err) {
       return rejectWithValue(err);
     }
@@ -124,28 +135,114 @@ export const createProperty = createAsyncThunk(
   }
 );
 
+/**
+ * updateProperty
+ * - payload: { propertyId, updates, mediaFiles?, useJson? }
+ * - default: use FormData (many backends expect multipart for PATCH)
+ * - if useJson === true, send JSON (Content-Type: application/json)
+ */
 export const updateProperty = createAsyncThunk(
   "propertyBooking/updateProperty",
-  async ({ propertyId, updates, mediaFiles }: any, { rejectWithValue }) => {
+  async (
+    {
+      propertyId,
+      updates,
+      mediaFiles,
+      useJson = false,
+    }: { propertyId: number; updates: any; mediaFiles?: File[]; useJson?: boolean },
+    { rejectWithValue }
+  ) => {
     try {
       let options: any;
 
-      if (mediaFiles?.length > 0) {
-        const fd = buildPropertyFormData(updates, mediaFiles);
+      if (!useJson) {
+        // prefer FormData by default
+        const fd = buildPropertyFormData(updates ?? {}, mediaFiles ?? []);
         options = { method: "PATCH", body: fd };
       } else {
-        options = { method: "PATCH", body: JSON.stringify(updates) };
+        // send JSON — caller requested JSON explicitly
+        options = {
+          method: "PATCH",
+          body: JSON.stringify(updates ?? {}),
+          headers: { "Content-Type": "application/json" },
+        };
       }
 
       const res = await authFetch(
         `${API_BASE}/villas/properties/${propertyId}/`,
         options
       );
-      const data = await res.json();
 
-      if (!res.ok) throw data;
+      // try parse JSON; if parse fails, return raw text as fallback
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch (e) {
+        const txt = await res.text().catch(() => null);
+        data = txt;
+      }
+
+      if (!res.ok) throw data ?? { detail: `HTTP ${res.status}` };
 
       return data;
+    } catch (err) {
+      return rejectWithValue(err);
+    }
+  }
+);
+
+/**
+ * updateMultipleProperties
+ * - payload: Array<{ propertyId, updates, mediaFiles?, useJson? }>
+ * - Performs sequential PATCH requests and returns array of results.
+ * - If any item fails, we collect the error object in the results array (so caller can inspect per-item)
+ */
+export const updateMultipleProperties = createAsyncThunk(
+  "propertyBooking/updateMultipleProperties",
+  async (
+    items: Array<{ propertyId: number; updates: any; mediaFiles?: File[]; useJson?: boolean }>,
+    { rejectWithValue }
+  ) => {
+    try {
+      const results: any[] = [];
+
+      // perform sequentially to avoid overloading backend and make consistent behaviour
+      for (const it of items) {
+        try {
+          const { propertyId, updates, mediaFiles, useJson } = it;
+          let options: any;
+          if (!useJson) {
+            const fd = buildPropertyFormData(updates ?? {}, mediaFiles ?? []);
+            options = { method: "PATCH", body: fd };
+          } else {
+            options = {
+              method: "PATCH",
+              body: JSON.stringify(updates ?? {}),
+              headers: { "Content-Type": "application/json" },
+            };
+          }
+
+          const res = await authFetch(`${API_BASE}/villas/properties/${propertyId}/`, options);
+
+          let data: any = null;
+          try {
+            data = await res.json();
+          } catch (e) {
+            data = await res.text().catch(() => null);
+          }
+
+          if (!res.ok) {
+            // push an error object for that item (don't abort all)
+            results.push({ propertyId, ok: false, error: data ?? { detail: `HTTP ${res.status}` } });
+          } else {
+            results.push({ propertyId, ok: true, payload: data });
+          }
+        } catch (err) {
+          results.push({ propertyId: (it as any).propertyId, ok: false, error: err });
+        }
+      }
+
+      return results;
     } catch (err) {
       return rejectWithValue(err);
     }
@@ -172,7 +269,7 @@ export const deleteProperty = createAsyncThunk(
 );
 
 /* --------------------------------
-   Bookings Thunks
+   Bookings Thunks (unchanged)
 ----------------------------------- */
 export const fetchMyBookings = createAsyncThunk(
   "propertyBooking/fetchMyBookings",
@@ -258,14 +355,14 @@ export const deleteBooking = createAsyncThunk(
 const propertyBookingSlice = createSlice({
   name: "propertyBooking",
   initialState: {
-    properties: [],
-    currentProperty: null,
+    properties: [] as any[],
+    currentProperty: null as any | null,
 
-    bookings: [],
-    currentBooking: null,
+    bookings: [] as any[],
+    currentBooking: null as any | null,
 
     loading: false,
-    error: null,
+    error: null as any,
   },
 
   reducers: {},
@@ -274,7 +371,8 @@ const propertyBookingSlice = createSlice({
     /* -------- Properties -------- */
     builder.addCase(fetchProperties.fulfilled, (state, action) => {
       state.loading = false;
-      state.properties = action.payload;
+      // normalize paginated or plain responses
+      state.properties = action.payload?.results ?? action.payload ?? [];
     });
 
     builder.addCase(fetchProperty.fulfilled, (state, action) => {
@@ -290,24 +388,36 @@ const propertyBookingSlice = createSlice({
 
     builder.addCase(updateProperty.fulfilled, (state, action) => {
       state.loading = false;
-      const index = state.properties.findIndex(
-        (p: any) => p.id === action.payload.id
-      );
-      if (index > -1) state.properties[index] = action.payload;
-      state.currentProperty = action.payload;
+      const updated = action.payload;
+      if (updated && updated.id !== undefined) {
+        const idx = state.properties.findIndex((p: any) => p.id === updated.id);
+        if (idx > -1) state.properties[idx] = updated;
+      }
+      state.currentProperty = updated;
+    });
+
+    // handle the result of updateMultipleProperties (array of results)
+    builder.addCase(updateMultipleProperties.fulfilled, (state, action) => {
+      state.loading = false;
+      const results = action.payload ?? [];
+      for (const r of results) {
+        if (r?.ok && r.payload && r.payload.id !== undefined) {
+          const idx = state.properties.findIndex((p: any) => p.id === r.payload.id);
+          if (idx > -1) state.properties[idx] = r.payload;
+        }
+      }
     });
 
     builder.addCase(deleteProperty.fulfilled, (state, action) => {
       state.loading = false;
-      state.properties = state.properties.filter(
-        (p: any) => p.id !== action.payload
-      );
+      const id = action.payload;
+      state.properties = state.properties.filter((p: any) => p.id !== id);
     });
 
     /* -------- Bookings -------- */
     builder.addCase(fetchMyBookings.fulfilled, (state, action) => {
       state.loading = false;
-      state.bookings = action.payload;
+      state.bookings = action.payload?.results ?? action.payload ?? [];
     });
 
     builder.addCase(createBooking.fulfilled, (state, action) => {
@@ -318,18 +428,15 @@ const propertyBookingSlice = createSlice({
 
     builder.addCase(updateBooking.fulfilled, (state, action) => {
       state.loading = false;
-      const index = state.bookings.findIndex(
-        (b: any) => b.id === action.payload.id
-      );
+      const index = state.bookings.findIndex((b: any) => b.id === action.payload.id);
       if (index > -1) state.bookings[index] = action.payload;
       state.currentBooking = action.payload;
     });
 
     builder.addCase(deleteBooking.fulfilled, (state, action) => {
       state.loading = false;
-      state.bookings = state.bookings.filter(
-        (b: any) => b.id !== action.payload
-      );
+      const id = action.payload;
+      state.bookings = state.bookings.filter((b: any) => b.id !== id);
     });
 
     /* -------- Global Pending & Error -------- */

@@ -1,7 +1,7 @@
+// src/features/Properties/AdminPropertiesSales.tsx
 import React, { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  Edit2,
   Trash2,
   Search,
   ChevronDown,
@@ -12,170 +12,207 @@ import {
 import Swal from "sweetalert2";
 import { Link } from "react-router-dom";
 
-// --- FAKE JSON DATA for Property Listings ---
-const projectData = [
-    {
-    id: 3,
-    title: "Elegant Suburban Estate",
-    details: "7 bed · 5 bath",
-    location: "Beverly Hills",
-    price: "$3,200,000",
-    type: "Estate",
-    updateDate: "2025-10-08",
-    status: "published",
-    imageUrl:
-      "https://res.cloudinary.com/dqkczdjjs/image/upload/v1760554174/Image_Luxury_Modern_Villa_with_Pool_sdpezo.png",
-  },
-  {
-    id: 4,
-    title: "Cozy Beachside Condo",
-    details: "1 bed · 1 bath",
-    location: "San Diego",
-    price: "$650,000",
-    type: "Condo",
-    updateDate: "2025-10-08",
-    status: "draft",
-    imageUrl: "https://placehold.co/64x64/ffc107/333333/png?text=CONDO",
-  },
-  {
-    id: 1,
-    title: "Luxury Modern Villa with Pool",
-    details: "5 bed, 4 bath ,4 Poll",
-    location: "Miami Beach",
-    price: "$2,850,000",
-    type: "Villa",
-    updateDate: "2025-10-08",
-    status: "published",
-    imageUrl:
-      "https://res.cloudinary.com/dqkczdjjs/image/upload/v1760554174/Image_Luxury_Modern_Villa_with_Pool_sdpezo.png",
-  },
-  {
-    id: 2,
-    title: "Downtown Penthouse with City Views",
-    details: "3 bed · 2 bath",
-    location: "New York",
-    price: "$1,650,000",
-    type: "Penthouse",
-    updateDate: "2025-10-08",
-    status: "pending",
-    imageUrl:
-      "https://res.cloudinary.com/dqkczdjjs/image/upload/v1760554255/Image_Downtown_Penthouse_with_City_Views_gfrhxe.png",
-  },
-  
-  {
-    id: 5,
-    title: "Lakefront Cabin Retreat",
-    details: "2 bed · 2 bath",
-    location: "Seattle",
-    price: "$950,000",
-    type: "Cabin",
-    updateDate: "2025-10-07",
-    status: "published",
-    imageUrl: "https://placehold.co/64x64/5a67d8/FFFFFF/png?text=CABIN",
-  },
-  {
-    id: 6,
-    title: "Historic Townhouse in Boston",
-    details: "4 bed · 3 bath",
-    location: "Boston",
-    price: "$1,300,000",
-    type: "Townhouse",
-    updateDate: "2025-10-06",
-    status: "pending",
-    imageUrl:
-      "https://res.cloudinary.com/dqkczdjjs/image/upload/v1760554255/Image_Downtown_Penthouse_with_City_Views_gfrhxe.png",
-  },
-  {
-    id: 7,
-    title: "Mountain View Acreage",
-    details: "Land only",
-    location: "Denver",
-    price: "$450,000",
-    type: "Land",
-    updateDate: "2025-10-05",
-    status: "draft",
-    imageUrl: "https://placehold.co/64x64/ed8936/FFFFFF/png?text=LAND",
-  },
-];
+import { useDispatch, useSelector } from "react-redux";
+import type { RootState } from "@/store"; // optional typed root state
 
-// --- Custom Toast Component (Internal) ---
-const ToastNotification = ({ message, type, visible }) => {
+import {
+  fetchProperties,
+  updateProperty,
+  deleteProperty,
+} from "../../../features/Properties/PropertiesSlice";
+
+/* ---------- small inline toast ---------- */
+const ToastNotification: React.FC<{
+  message: string;
+  type?: "success" | "error";
+  visible: boolean;
+}> = ({ message, type = "success", visible }) => {
   if (!visible) return null;
   const baseClass =
-    "fixed bottom-4 right-4 p-4 rounded-lg shadow-xl text-white transition-opacity duration-300";
+    "fixed bottom-4 right-4 p-4 rounded-lg shadow-xl text-white transition-opacity duration-300 z-50";
   const typeClass = type === "success" ? "bg-green-500" : "bg-red-500";
   const Icon = type === "success" ? CheckCircle : AlertTriangle;
   return (
-    <div
-      className={`${baseClass} ${typeClass} flex items-center space-x-2 z-50`}
-    >
+    <div className={`${baseClass} ${typeClass} flex items-center space-x-2`}>
       <Icon className="h-5 w-5" />
       <span className="font-medium">{message}</span>
     </div>
   );
 };
 
-const AdminPropertiesRentals = () => {
+/* ---------- normalize payload helper ---------- */
+function toArray(payload: any): any[] {
+  if (!payload) return [];
+  if (Array.isArray(payload)) return payload;
+  if (payload.results && Array.isArray(payload.results)) return payload.results;
+  if (payload.items && Array.isArray(payload.items)) return payload.items;
+  return [];
+}
+
+const availableStatuses = ["All Status", "published", "pending", "draft"];
+
+/* ---------- helper to decide if property is a "sale" listing ---------- */
+function isSaleProperty(p: any): boolean {
+  if (!p) return false;
+  const val =
+    (p.listing_type ?? p.listingType ?? p.property_type ?? p.type ?? p.rateType) ??
+    "";
+  if (!val) return false;
+  const normalized = String(val).toLowerCase();
+  // treat common variants as sale
+  return ["sale", "sell", "for sale", "sales"].includes(normalized);
+}
+
+const AdminPropertiesSales: React.FC = () => {
+  const dispatch: any = useDispatch();
+  const slice: any = useSelector((s: any) => s.propertyBooking);
+  const rawProperties = slice?.properties;
+  const loading = slice?.loading;
+  const error = slice?.error;
+
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
-  const [toast, setToast] = useState({ message: "", type: "", visible: false });
+  const [toast, setToast] = useState({
+    message: "",
+    type: "" as "success" | "error" | "",
+    visible: false,
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
-  const [data, setData] = useState(projectData);
 
-  // --- Modal State ---
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editItem, setEditItem] = useState(null);
+  const [editItem, setEditItem] = useState<any | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  const availableStatuses = ["All Status", "published", "pending", "draft"];
+  // normalized array from redux
+  const reduxArray = useMemo(() => toArray(rawProperties), [rawProperties]);
 
-  const getStatusClass = (status) => {
-    switch (status.toLowerCase()) {
-      case "published":
-        return "bg-blue-100 text-blue-700";
-      case "pending":
-        return "bg-orange-100 text-orange-700";
-      case "draft":
-        return "bg-gray-100 text-gray-700";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
-  };
+  // local copy for instant UI updates (only sale items)
+  const [localProperties, setLocalProperties] = useState<any[]>([]);
 
-  const showToast = (message, type) => {
+  // sync localProperties whenever redux array changes, but include only sale listings
+  useEffect(() => {
+    const saleOnly = reduxArray.filter((p: any) => isSaleProperty(p));
+    // copy objects so local edits won't mutate redux objects directly
+    setLocalProperties(saleOnly.map((p: any) => ({ ...p })));
+  }, [reduxArray]);
+
+  useEffect(() => {
+    // dispatch and log the thunk result to console
+    const p = dispatch(fetchProperties());
+    p
+      .then((res: any) => {
+        console.log("[fetchProperties] dispatched result:", res);
+        console.log("[fetchProperties] payload:", res?.payload ?? res);
+      })
+      .catch((err: any) => {
+        console.error("[fetchProperties] dispatch error:", err);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    console.log("[propertyBooking.properties] rawProperties changed:", rawProperties);
+    console.log("[localProperties] length:", localProperties.length);
+  }, [rawProperties, localProperties]);
+
+  const showToast = (message: string, type: "success" | "error" = "success") => {
     setToast({ message, type, visible: true });
     setTimeout(() => setToast({ message: "", type: "", visible: false }), 3000);
   };
 
-  const handleEdit = (id) => {
-    const found = data.find((item) => item.id === id);
+  const handleEdit = (id: number) => {
+    const found = localProperties.find((d) => Number(d.id) === Number(id));
     if (found) {
       setEditItem({ ...found });
       setIsModalOpen(true);
     }
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = (id: number) => {
+    const found = localProperties.find((d) => Number(d.id) === Number(id));
     Swal.fire({
       title: "Are you sure?",
-      text: "You won't be able to revert this!",
+      html: `<div>Delete property <strong>${found?.title ?? `#${id}`}</strong>?</div>`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#3085d6",
       cancelButtonColor: "#d33",
       confirmButtonText: "Yes, delete it!",
-    }).then((result) => {
+      reverseButtons: true,
+    }).then(async (result) => {
       if (result.isConfirmed) {
-        const newData = data.filter((item) => item.id !== id);
-        setData(newData);
-        Swal.fire({
-          title: "Deleted!",
-          text: `Project ${id} has been deleted.`,
-          icon: "success",
-        });
-        showToast(`Project ${id} deleted successfully!`, "success");
+        try {
+          setDeletingId(id);
+
+          // dispatch thunk to delete on server
+          // @ts-ignore unwrap
+          await dispatch(deleteProperty(id)).unwrap();
+
+          // remove locally
+          setLocalProperties((prev) => prev.filter((x) => Number(x.id) !== Number(id)));
+
+          showToast(`Property ${id} deleted successfully!`, "success");
+
+          // refresh redux list to be safe/in-sync
+          dispatch(fetchProperties());
+        } catch (err: any) {
+          console.error("Delete property error:", err);
+          Swal.fire({
+            title: "Error",
+            text: err?.detail || err?.message || "Failed to delete property",
+            icon: "error",
+          });
+        } finally {
+          setDeletingId(null);
+        }
       }
     });
+  };
+
+  const handleModalSave = async () => {
+    if (!editItem) return;
+    const id = Number(editItem.id);
+
+    // build updates object — include only fields you expect to update
+    const updates: any = {
+      title: editItem.title,
+      price: editItem.price,
+      status: editItem.status,
+      location: editItem.location ?? editItem.city,
+    };
+
+    try {
+      setIsSaving(true);
+      // call thunk
+      // @ts-ignore unwrap
+      const resp = await dispatch(updateProperty({ propertyId: id, updates })).unwrap();
+
+      // resp is the updated object returned by server
+      // Update localProperties instantly using spread operator
+      setLocalProperties((prev) =>
+        prev.map((p) => (Number(p.id) === Number(id) ? { ...p, ...resp } : p))
+      );
+
+      showToast(`Property ${id} updated successfully!`, "success");
+
+      // close modal
+      setIsModalOpen(false);
+      setEditItem(null);
+
+      // refresh redux store
+      dispatch(fetchProperties());
+    } catch (err: any) {
+      console.error("Update error:", err);
+      Swal.fire({
+        title: "Error",
+        text: err?.detail || err?.message || "Failed to update property",
+        icon: "error",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   useEffect(() => {
@@ -183,51 +220,40 @@ const AdminPropertiesRentals = () => {
   }, [searchTerm, statusFilter]);
 
   const filteredProjects = useMemo(() => {
-    return data.filter((project) => {
+    const searchLower = searchTerm.toLowerCase().trim();
+    return localProperties.filter((project: any) => {
       const statusMatch =
         statusFilter === "All Status" ||
-        project.status.toLowerCase() === statusFilter.toLowerCase();
-      const searchLower = searchTerm.toLowerCase();
+        String(project.status ?? "").toLowerCase() === statusFilter.toLowerCase();
       const searchMatch =
-        project.title.toLowerCase().includes(searchLower) ||
-        project.location.toLowerCase().includes(searchLower) ||
-        project.type.toLowerCase().includes(searchLower);
+        !searchLower ||
+        String(project.title ?? "").toLowerCase().includes(searchLower) ||
+        String(project.location ?? "").toLowerCase().includes(searchLower) ||
+        String(project.type ?? "").toLowerCase().includes(searchLower);
       return statusMatch && searchMatch;
     });
-  }, [searchTerm, statusFilter, data]);
+  }, [localProperties, searchTerm, statusFilter]);
 
-  const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(filteredProjects.length / itemsPerPage));
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentProjects = filteredProjects.slice(
-    indexOfFirstItem,
-    indexOfLastItem
-  );
+  const currentProjects = filteredProjects.slice(indexOfFirstItem, indexOfLastItem);
 
-  const paginate = (pageNumber) => {
+  const paginate = (pageNumber: number) => {
     if (pageNumber >= 1 && pageNumber <= totalPages) setCurrentPage(pageNumber);
-  };
-
-  const handleModalSave = () => {
-    const updated = data.map((item) =>
-      item.id === editItem.id ? editItem : item
-    );
-    setData(updated);
-    setIsModalOpen(false);
-    showToast(`Project ${editItem.id} updated successfully!`, "success");
   };
 
   return (
     <div>
+      <ToastNotification message={toast.message} type={toast.type as any} visible={toast.visible} />
+
       <div className="flex justify-between items-center mt-5">
         <div>
-          <h1 className="text-3xl font-semibold">Properties-Sales</h1>
-          <p className="text-gray-500">
-            Your portfolio, beautifully organized.
-          </p>
+          <h1 className="text-3xl font-semibold">Properties - Sales (Sale only)</h1>
+          <p className="text-gray-500">Your sale properties, beautifully organized.</p>
         </div>
         <Link
-          to="/dashboard/sales/admin-create-property"
+          to="/dashboard/rentals/admin-create-property"
           className="bg-[#009689] text-white flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm transition-colors duration-150"
         >
           <LucideTableProperties className="h-5 w-5" /> Create Property
@@ -235,8 +261,6 @@ const AdminPropertiesRentals = () => {
       </div>
 
       <div className="min-h-screen font-sans">
-        <ToastNotification {...toast} />
-
         {/* Search & Filter */}
         <div className="mb-6 flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 mt-6">
           <div className="relative flex items-center w-full sm:max-w-sm border border-gray-300 rounded-lg bg-white shadow-sm">
@@ -300,44 +324,53 @@ const AdminPropertiesRentals = () => {
               </thead>
 
               <tbody className="bg-white divide-y divide-gray-200">
-                {currentProjects.map((item) => (
+                {currentProjects.map((item: any) => (
                   <tr key={item.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <input type="checkbox" />
                     </td>
                     <td className="px-6 py-4 flex items-center gap-3">
                       <img
-                        src={item.imageUrl}
-                        alt={item.title}
+                        src={
+                          item?.main_image_url ||
+                          item?.imageUrl ||
+                          item?.media_images?.[0]?.image ||
+                          "https://placehold.co/64x64"
+                        }
+                        alt={item.title || item.name || `Property ${item.id}`}
                         className="h-16 w-16 rounded object-cover"
                       />
                       <div>
-                        <div className="text-sm font-medium">{item.title}</div>
-                        <div className="text-xs text-gray-500">
-                          {item.details}
+                        <div className="text-sm font-medium">
+                          {item.title ?? item.name ?? `Untitled #${item.id}`}
                         </div>
+                        <div className="text-xs text-gray-500">{item.details ?? item.description}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
-                      {item.location}
+                      {item.location ?? item.city ?? item.address}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
-                      {item.price}
+                      {item.price_display ?? item.price ?? item.total_price ?? "-"}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
-                      {item.type}
+                      {String(item.listing_type ?? item.rateType ?? item.property_type ?? item.type ?? "-")}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
-                      {item.updateDate}
+                      {item.updated_at ?? item.updateDate ?? "-"}
                     </td>
                     <td className="px-6 py-4">
                       <span
-                        className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusClass(
-                          item.status
-                        )}`}
+                        className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                          (item.status ?? "draft").toLowerCase() === "published"
+                            ? "bg-blue-100 text-blue-700"
+                            : (item.status ?? "draft").toLowerCase() === "pending"
+                            ? "bg-orange-100 text-orange-700"
+                            : "bg-gray-100 text-gray-700"
+                        }`}
                       >
-                        {item.status.charAt(0).toUpperCase() +
-                          item.status.slice(1)}
+                        {(item.status ?? "draft").toString().charAt(0).toUpperCase() +
+                          (item.status ?? "draft").toString().slice(1)}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -349,26 +382,24 @@ const AdminPropertiesRentals = () => {
                           <img
                             src="https://res.cloudinary.com/dqkczdjjs/image/upload/v1761000758/Edit_hejj0l.png"
                             alt="Edit"
-                            className=""
                           />
                         </Button>
                         <Button
                           onClick={() => handleDelete(item.id)}
                           className="p-2 border text-red-500 bg-white hover:bg-gray-100 flex items-center justify-center"
+                          disabled={deletingId === item.id}
                         >
-                          <Trash2 className="" />
+                          <Trash2 />
                         </Button>
                       </div>
                     </td>
                   </tr>
                 ))}
+
                 {filteredProjects.length === 0 && (
                   <tr>
-                    <td
-                      colSpan="8"
-                      className="px-6 py-8 text-center text-gray-500"
-                    >
-                      No projects found matching your criteria.
+                    <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
+                      {loading ? "Loading..." : error ? `Failed to load: ${String(error)}` : "No sale properties found."}
                     </td>
                   </tr>
                 )}
@@ -415,70 +446,40 @@ const AdminPropertiesRentals = () => {
         </div>
       </div>
 
-      {/* --- EDIT MODAL --- */}
+      {/* Edit modal */}
       {isModalOpen && editItem && (
-        <div className="fixed inset-0   bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white border-2 border-gray-300 bg-bg-opacity-100 rounded-lg shadow-lg p-6 w-full max-w-lg overflow-y-auto max-h-[90vh]">
-            <h2 className="text-xl font-semibold mb-4">
-              Edit Project (ID: {editItem.id})
-            </h2>
+        <div className="fixed inset-0 bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white border-2 border-gray-300 rounded-lg shadow-lg p-6 w-full max-w-lg overflow-y-auto max-h-[90vh]">
+            <h2 className="text-xl font-semibold mb-4">Edit Property (ID: {editItem.id})</h2>
             <div className="space-y-3">
               <label className="block text-sm font-medium">Title</label>
               <input
                 type="text"
-                value={editItem.title}
-                onChange={(e) =>
-                  setEditItem({ ...editItem, title: e.target.value })
-                }
-                className="w-full border rounded p-2"
-              />
-
-              <label className="block text-sm font-medium">Details</label>
-              <input
-                type="text"
-                value={editItem.details}
-                onChange={(e) =>
-                  setEditItem({ ...editItem, details: e.target.value })
-                }
-                className="w-full border rounded p-2"
-              />
-
-              <label className="block text-sm font-medium">Location</label>
-              <input
-                type="text"
-                value={editItem.location}
-                onChange={(e) =>
-                  setEditItem({ ...editItem, location: e.target.value })
-                }
+                value={editItem.title ?? ""}
+                onChange={(e) => setEditItem({ ...editItem, title: e.target.value })}
                 className="w-full border rounded p-2"
               />
 
               <label className="block text-sm font-medium">Price</label>
               <input
                 type="text"
-                value={editItem.price}
-                onChange={(e) =>
-                  setEditItem({ ...editItem, price: e.target.value })
-                }
+                value={editItem.price ?? editItem.price_display ?? ""}
+                onChange={(e) => setEditItem({ ...editItem, price: e.target.value })}
                 className="w-full border rounded p-2"
               />
 
-              <label className="block text-sm font-medium">Type</label>
+              <label className="block text-sm font-medium">Location</label>
               <input
                 type="text"
-                value={editItem.type}
-                onChange={(e) =>
-                  setEditItem({ ...editItem, type: e.target.value })
-                }
+                value={editItem.location ?? editItem.city ?? ""}
+                onChange={(e) => setEditItem({ ...editItem, location: e.target.value })}
                 className="w-full border rounded p-2"
               />
 
               <label className="block text-sm font-medium">Status</label>
               <select
-                value={editItem.status}
-                onChange={(e) =>
-                  setEditItem({ ...editItem, status: e.target.value })
-                }
+                value={editItem.status ?? "draft"}
+                onChange={(e) => setEditItem({ ...editItem, status: e.target.value })}
                 className="w-full border rounded p-2"
               >
                 <option value="published">Published</option>
@@ -488,17 +489,11 @@ const AdminPropertiesRentals = () => {
             </div>
 
             <div className="mt-6 flex justify-end gap-3">
-              <Button
-                onClick={() => setIsModalOpen(false)}
-                className="bg-gray-200 text-gray-700"
-              >
+              <Button onClick={() => { setIsModalOpen(false); setEditItem(null); }} className="bg-gray-200 text-gray-700">
                 Cancel
               </Button>
-              <Button
-                onClick={handleModalSave}
-                className="bg-blue-600 text-white"
-              >
-                Save Changes
+              <Button onClick={handleModalSave} className="bg-blue-600 text-white" disabled={isSaving}>
+                {isSaving ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           </div>
@@ -508,4 +503,4 @@ const AdminPropertiesRentals = () => {
   );
 };
 
-export default AdminPropertiesRentals;
+export default AdminPropertiesSales;

@@ -4,7 +4,7 @@ import GoogleMapReact from "google-map-react";
 import { PiMapPinBold } from "react-icons/pi";
 import { Map, MapPin } from "lucide-react";
 
-const googleMapAPIKey = "AIzaSyAdOzx1k0BNNGVgPaK7po6TcMz46MVeiY4";
+const googleMapAPIKey = "AIzaSyDRNtz8qa3VSLN9EvMO42rJQaioyFPslDk";
 
 // Local thumbnail (you uploaded this file; using the local path as requested)
 const LOCAL_THUMBNAIL = "/mnt/data/3c732c81-93ba-460a-bc0c-4418a9864cd0.png";

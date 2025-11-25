@@ -564,6 +564,11 @@ const ImageGallerySection = ({ villa }) => {
     }
   };
 
+
+
+  const villaId = villa.id;
+
+
   // -------- UI Rendering --------
   return (
     <section className="container mx-auto mb-[920px] px-4 py-16 relative">
@@ -759,7 +764,7 @@ const ImageGallerySection = ({ villa }) => {
         <>
           <RatesBookingInformation booking_rate_start={booking_rate_start} price={villa.price} />
         <div className="">
-            <Calendar />
+            <Calendar villaId={villaId} />
         </div>
         </>
       )}

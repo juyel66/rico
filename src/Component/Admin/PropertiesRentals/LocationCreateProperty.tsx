@@ -4,7 +4,7 @@ import GoogleMapReact from "google-map-react";
 import { PiMapPinBold } from "react-icons/pi";
 import { IoClose } from "react-icons/io5";
 
-const googleMapAPIKey = "AIzaSyAdOzx1k0BNNGVgPaK7po6TcMz46MVeiY4";
+const googleMapAPIKey = "AIzaSyDRNtz8qa3VSLN9EvMO42rJQaioyFPslDk";
 
 interface Coords {
   lat: number;

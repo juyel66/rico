@@ -35,6 +35,7 @@ const Home: React.FC = () => {
         const json = await res.json();
         // Support paginated or plain arrays
         const items: any[] = Array.isArray(json) ? json : json.results ?? json.items ?? [];
+
         if (!cancelled) {
           setMasterData(items);
           // initial filtered view = items (so SignatureCardContainer shows all until user filters)
@@ -84,6 +85,8 @@ const Home: React.FC = () => {
             }}
           />
         </div>
+
+       
       </div>
 
       <div className="container mx-auto">
@@ -94,6 +97,10 @@ const Home: React.FC = () => {
       <div className="container mx-auto">
         <InspirationSection />
       </div>
+
+      <div></div>
+
+     
 
       <div className="container mx-auto">
         <Luxury />

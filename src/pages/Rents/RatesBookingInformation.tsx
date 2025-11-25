@@ -156,6 +156,8 @@ const RatesBookingInformation: React.FC<RatesBookingInformationProps> = ({
               style={{ minHeight: "300px" }}
             />
           </div>
+
+         
         </div>
       </div>
     </div>

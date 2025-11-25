@@ -361,6 +361,7 @@ const RentsDetailsBanner: React.FC<RentsDetailsBannerProps> = ({ villa }) => {
   const addressText = effectiveVilla?.address ?? effectiveVilla?.city ?? "Downtown, NY";
 
   const guestsCount = Number(effectiveVilla?.add_guest ?? effectiveVilla?.guests ?? 0);
+    
   const bedsCount = Number(effectiveVilla?.bedrooms ?? 0);
   const bathsCount = Number(effectiveVilla?.bathrooms ?? 0);
   const poolCount = Number(effectiveVilla?.pool ?? 0);
