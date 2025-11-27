@@ -51,7 +51,7 @@ export const NotificationBell: React.FC = () => {
         <div className="absolute right-0 mt-2 w-80 bg-white border shadow-lg rounded z-50">
           <div className="p-3 border-b flex items-center justify-between">
             <span className="font-medium">Notifications</span>
-            <Link to="/dashboard/notifications" onClick={() => setOpen(false)} className="text-sm text-blue-600">
+            <Link to="//dashboard/notifications" onClick={() => setOpen(false)} className="text-sm text-blue-600">
               View all
             </Link>
           </div>
