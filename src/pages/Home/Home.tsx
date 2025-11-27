@@ -10,7 +10,7 @@
 // import Contact from "../Contact/Contact";
 // import Affiliates from "./Component/Affiliates";
 
-// const API_BASE = import.meta.env.VITE_API_BASE || "http://10.10.13.60:8000/api";
+// const API_BASE = import.meta.env.VITE_API_BASE || "https://api.eastmondvillas.com/api";
 
 // const Home: React.FC = () => {
 //   // masterData = full API response (array)
@@ -86,7 +86,6 @@
 //           />
 //         </div>
 
-       
 //       </div>
 
 //       <div className="container mx-auto">
@@ -99,8 +98,6 @@
 //       </div>
 
 //       <div></div>
-
-     
 
 //       <div className="container mx-auto">
 //         <Luxury />
@@ -129,36 +126,20 @@
 
 // export default Home;
 
+import React, { useEffect, useState, useRef } from 'react';
+import FilterSystem from '@/shared/FilterSystem';
+import Banner from './Component/Banner';
+import SignatureCardContainer from './Component/SignatureCardContainer';
+import InspirationSection from './Component/InspirationSection';
+import Luxury from './Component/Luxury';
+import ExperiencesPage from './Component/ExperiencesPage';
+import GuestSections from './Component/GuestSections';
+import EstateExperience from './Component/EstateExperience';
+import Contact from '../Contact/Contact';
+import Affiliates from './Component/Affiliates';
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-import React, { useEffect, useState, useRef } from "react";
-import FilterSystem from "@/shared/FilterSystem";
-import Banner from "./Component/Banner";
-import SignatureCardContainer from "./Component/SignatureCardContainer";
-import InspirationSection from "./Component/InspirationSection";
-import Luxury from "./Component/Luxury";
-import ExperiencesPage from "./Component/ExperiencesPage";
-import GuestSections from "./Component/GuestSections";
-import EstateExperience from "./Component/EstateExperience";
-import Contact from "../Contact/Contact";
-import Affiliates from "./Component/Affiliates";
-
-const API_BASE = import.meta.env.VITE_API_BASE || "http://10.10.13.60:8000/api";
+const API_BASE =
+  import.meta.env.VITE_API_BASE || 'https://api.eastmondvillas.com/api';
 
 const Home: React.FC = () => {
   // masterData = full API response (array)
@@ -172,7 +153,10 @@ const Home: React.FC = () => {
   const signatureRef = useRef<HTMLDivElement>(null);
 
   const handleScrollToSignature = () => {
-    signatureRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    signatureRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
   };
 
   useEffect(() => {
@@ -184,12 +168,14 @@ const Home: React.FC = () => {
       try {
         const res = await fetch(`${API_BASE}/villas/properties/`);
         if (!res.ok) {
-          const t = await res.text().catch(() => "");
+          const t = await res.text().catch(() => '');
           throw new Error(`API error: ${res.status} ${t}`);
         }
         const json = await res.json();
         // Support paginated or plain arrays
-        const items: any[] = Array.isArray(json) ? json : json.results ?? json.items ?? [];
+        const items: any[] = Array.isArray(json)
+          ? json
+          : (json.results ?? json.items ?? []);
 
         if (!cancelled) {
           setMasterData(items);
@@ -198,8 +184,8 @@ const Home: React.FC = () => {
         }
       } catch (err: any) {
         if (!cancelled) {
-          console.error("Home fetch error:", err);
-          setError(err?.message ?? "Failed to load data");
+          console.error('Home fetch error:', err);
+          setError(err?.message ?? 'Failed to load data');
           setMasterData([]);
           setFilteredData([]);
         }
@@ -245,7 +231,11 @@ const Home: React.FC = () => {
 
       {/* SignatureCardContainer now wrapped with the ref so we can scroll to it */}
       <div ref={signatureRef} className="container mx-auto">
-        <SignatureCardContainer items={filteredData} loading={loading} error={error} />
+        <SignatureCardContainer
+          items={filteredData}
+          loading={loading}
+          error={error}
+        />
       </div>
 
       <div className="container mx-auto">

@@ -1,12 +1,11 @@
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+export const API_BASE =
+  import.meta.env.VITE_API_BASE || 'https://api.eastmondvillas.com/api';
 
-export const API_BASE = import.meta.env.VITE_API_BASE || "http://10.10.13.60:8000/api";
-
-
-const ACCESS_KEY = "auth_access";
-const REFRESH_KEY = "auth_refresh";
-const USER_KEY = "auth_user";
+const ACCESS_KEY = 'auth_access';
+const REFRESH_KEY = 'auth_refresh';
+const USER_KEY = 'auth_user';
 
 const saveTokens = ({ access, refresh }) => {
   try {
@@ -23,14 +22,24 @@ const clearTokens = () => {
 };
 
 export const getAccessToken = () => {
-  try { return localStorage.getItem(ACCESS_KEY); } catch (e) { return null; }
+  try {
+    return localStorage.getItem(ACCESS_KEY);
+  } catch (e) {
+    return null;
+  }
 };
 export const getRefreshToken = () => {
-  try { return localStorage.getItem(REFRESH_KEY); } catch (e) { return null; }
+  try {
+    return localStorage.getItem(REFRESH_KEY);
+  } catch (e) {
+    return null;
+  }
 };
 
 const saveUser = (user) => {
-  try { localStorage.setItem(USER_KEY, JSON.stringify(user || null)); } catch (e) {}
+  try {
+    localStorage.setItem(USER_KEY, JSON.stringify(user || null));
+  } catch (e) {}
 };
 const getUserFromStorage = () => {
   try {
@@ -41,144 +50,142 @@ const getUserFromStorage = () => {
   }
 };
 const clearUser = () => {
-  try { localStorage.removeItem(USER_KEY); } catch (e) {}
+  try {
+    localStorage.removeItem(USER_KEY);
+  } catch (e) {}
 };
 const authFetch = (url, options = {}) => {
   const headers = { ...(options.headers || {}) };
   const access = getAccessToken();
-  if (access) headers["Authorization"] = `Bearer ${access}`;
-  headers["Content-Type"] = headers["Content-Type"] || "application/json";
+  if (access) headers['Authorization'] = `Bearer ${access}`;
+  headers['Content-Type'] = headers['Content-Type'] || 'application/json';
   return fetch(url, { ...options, headers });
 };
 
-
-
-
 export const register = createAsyncThunk(
-  "auth/register",
+  'auth/register',
   async (payload, { rejectWithValue }) => {
-    
     try {
       const res = await fetch(`${API_BASE}/registration/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) return rejectWithValue(data);
       return data;
     } catch (err) {
-      return rejectWithValue({ detail: err.message || "Network error" });
+      return rejectWithValue({ detail: err.message || 'Network error' });
     }
   }
 );
 
-
 export const login = createAsyncThunk(
-  "auth/login",
+  'auth/login',
   async ({ email, password }, { rejectWithValue }) => {
     try {
       const res = await fetch(`${API_BASE}/auth/login/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
       if (!res.ok) return rejectWithValue(data);
-      
+
       saveTokens({ access: data.access, refresh: data.refresh });
       saveUser(data.user || null);
       return data; // { access, refresh, user }
     } catch (err) {
-      return rejectWithValue({ detail: err.message || "Network error" });
+      return rejectWithValue({ detail: err.message || 'Network error' });
     }
   }
 );
 
-// refreshToken 
+// refreshToken
 export const refreshToken = createAsyncThunk(
-  "auth/refreshToken",
+  'auth/refreshToken',
   async (_, { rejectWithValue }) => {
     try {
       const refresh = getRefreshToken();
-      if (!refresh) return rejectWithValue({ detail: "No refresh token" });
+      if (!refresh) return rejectWithValue({ detail: 'No refresh token' });
       const res = await fetch(`${API_BASE}/auth/token/refresh/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh }),
       });
       const data = await res.json();
       if (!res.ok) return rejectWithValue(data);
-     
+
       if (data.access) {
-        try { localStorage.setItem(ACCESS_KEY, data.access); } catch (e) {}
+        try {
+          localStorage.setItem(ACCESS_KEY, data.access);
+        } catch (e) {}
       }
-      return data; 
+      return data;
     } catch (err) {
-      return rejectWithValue({ detail: err.message || "Network error" });
+      return rejectWithValue({ detail: err.message || 'Network error' });
     }
   }
 );
 
-// logout 
+// logout
 export const logout = createAsyncThunk(
-  "auth/logout",
+  'auth/logout',
   async (_, { rejectWithValue }) => {
     try {
       const access = getAccessToken();
       const refresh = getRefreshToken();
       const res = await fetch(`${API_BASE}/auth/logout/`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          Authorization: access ? `Bearer ${access}` : "",
+          'Content-Type': 'application/json',
+          Authorization: access ? `Bearer ${access}` : '',
         },
         body: JSON.stringify({ refresh }),
       });
-     
+
       clearTokens();
       clearUser();
-      if (res.ok) return { detail: "Successfully logged out." };
+      if (res.ok) return { detail: 'Successfully logged out.' };
       const data = await res.json();
       return rejectWithValue(data);
     } catch (err) {
       clearTokens();
       clearUser();
-      return rejectWithValue({ detail: err.message || "Network error" });
+      return rejectWithValue({ detail: err.message || 'Network error' });
     }
   }
 );
 
-// current User  
+// current User
 export const fetchCurrentUser = createAsyncThunk(
-  "auth/fetchCurrentUser",
+  'auth/fetchCurrentUser',
   async (_, { dispatch, rejectWithValue }) => {
     try {
       let res = await authFetch(`${API_BASE}/auth/user/`);
-   
+
       if (res.status === 401) {
         const refreshed = await dispatch(refreshToken());
         if (refreshToken.fulfilled.match(refreshed)) {
           res = await authFetch(`${API_BASE}/auth/user/`);
         } else {
-          
-          return rejectWithValue({ detail: "Session expired" });
+          return rejectWithValue({ detail: 'Session expired' });
         }
       }
       const data = await res.json();
       if (!res.ok) return rejectWithValue(data);
-      
+
       saveUser(data);
       return data;
     } catch (err) {
-      return rejectWithValue({ detail: err.message || "Network error" });
+      return rejectWithValue({ detail: err.message || 'Network error' });
     }
   }
 );
 
-// Admin user management 
+// Admin user management
 export const adminListUsers = createAsyncThunk(
-  "auth/adminListUsers",
+  'auth/adminListUsers',
   async (_, { rejectWithValue }) => {
     try {
       const res = await authFetch(`${API_BASE}/admin/users/`);
@@ -186,146 +193,132 @@ export const adminListUsers = createAsyncThunk(
       if (!res.ok) return rejectWithValue(data);
       return data;
     } catch (err) {
-      return rejectWithValue({ detail: err.message || "Network error" });
+      return rejectWithValue({ detail: err.message || 'Network error' });
     }
   }
 );
 
-
 export const adminCreateUser = createAsyncThunk(
-  "auth/adminCreateUser",
+  'auth/adminCreateUser',
   async (payload, { rejectWithValue }) => {
     try {
       const res = await authFetch(`${API_BASE}/admin/users/`, {
-        method: "POST",
+        method: 'POST',
         body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) return rejectWithValue(data);
       return data;
     } catch (err) {
-      return rejectWithValue({ detail: err.message || "Network error" });
+      return rejectWithValue({ detail: err.message || 'Network error' });
     }
   }
 );
 
-
 export const adminUpdateUser = createAsyncThunk(
-  "auth/adminUpdateUser",
+  'auth/adminUpdateUser',
   async ({ id, body }, { rejectWithValue }) => {
     try {
       const res = await authFetch(`${API_BASE}/admin/users/${id}/`, {
-        method: "PUT",
+        method: 'PUT',
         body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) return rejectWithValue(data);
       return data;
     } catch (err) {
-      return rejectWithValue({ detail: err.message || "Network error" });
+      return rejectWithValue({ detail: err.message || 'Network error' });
     }
   }
 );
 
-// admin delete role  
+// admin delete role
 export const adminDeleteUser = createAsyncThunk(
-  "auth/adminDeleteUser",
+  'auth/adminDeleteUser',
   async (id, { rejectWithValue }) => {
     try {
       const res = await authFetch(`${API_BASE}/admin/users/${id}/`, {
-        method: "DELETE",
+        method: 'DELETE',
       });
       if (res.status === 204) return { id };
       const data = await res.json();
       return rejectWithValue(data);
     } catch (err) {
-      return rejectWithValue({ detail: err.message || "Network error" });
+      return rejectWithValue({ detail: err.message || 'Network error' });
     }
   }
 );
 
-
-
-
-
 export const changePassword = createAsyncThunk(
-  "auth/changePassword",
+  'auth/changePassword',
   async (payload, { rejectWithValue }) => {
     try {
       const res = await authFetch(`${API_BASE}/auth/password/change/`, {
-        method: "POST",
+        method: 'POST',
         body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) return rejectWithValue(data);
       return data;
     } catch (err) {
-      return rejectWithValue({ detail: err.message || "Network error" });
+      return rejectWithValue({ detail: err.message || 'Network error' });
     }
   }
 );
 
-
-
 const initialState = {
   access: getAccessToken(),
   refresh: getRefreshToken(),
-  user: getUserFromStorage(), 
-  usersList: [], 
+  user: getUserFromStorage(),
+  usersList: [],
   loading: false,
   error: null,
   lastAction: null,
 };
 
 const authSlice = createSlice({
-  name: "auth",
+  name: 'auth',
   initialState,
   reducers: {
-
     clearAuthState(state) {
       state.access = null;
       state.refresh = null;
       state.user = null;
       state.loading = false;
       state.error = null;
-      state.lastAction = "clearAuthState";
+      state.lastAction = 'clearAuthState';
       clearTokens();
       clearUser();
     },
 
     setLocalRole(state, action) {
       if (state.user) state.user.role = action.payload;
-      state.lastAction = "setLocalRole";
-     
+      state.lastAction = 'setLocalRole';
+
       saveUser(state.user);
     },
   },
   extraReducers: (builder) => {
-
-
-
-    // register 
+    // register
     builder.addCase(register.pending, (state) => {
-
       state.loading = true;
       state.error = null;
-      state.lastAction = "register_started";
+      state.lastAction = 'register_started';
     });
     builder.addCase(register.fulfilled, (state, action) => {
-    
       state.loading = false;
       state.error = null;
-      state.lastAction = "register_succeeded";
+      state.lastAction = 'register_succeeded';
 
       state.user = action.payload;
- 
+
       saveUser(action.payload);
     });
     builder.addCase(register.rejected, (state, action) => {
       // register failed
       state.loading = false;
       state.error = action.payload || action.error;
-      state.lastAction = "register_failed";
+      state.lastAction = 'register_failed';
     });
 
     // ---------- login ----------
@@ -333,7 +326,7 @@ const authSlice = createSlice({
       // login started
       state.loading = true;
       state.error = null;
-      state.lastAction = "login_started";
+      state.lastAction = 'login_started';
     });
     builder.addCase(login.fulfilled, (state, action) => {
       // login succeeded
@@ -342,16 +335,18 @@ const authSlice = createSlice({
       state.refresh = action.payload.refresh;
       state.user = action.payload.user;
       state.error = null;
-      state.lastAction = "login_succeeded";
-   
-      saveTokens({ access: action.payload.access, refresh: action.payload.refresh });
+      state.lastAction = 'login_succeeded';
+
+      saveTokens({
+        access: action.payload.access,
+        refresh: action.payload.refresh,
+      });
       saveUser(action.payload.user);
     });
     builder.addCase(login.rejected, (state, action) => {
-   
       state.loading = false;
       state.error = action.payload || action.error;
-      state.lastAction = "login_failed";
+      state.lastAction = 'login_failed';
       clearTokens();
       clearUser();
       state.access = null;
@@ -359,26 +354,27 @@ const authSlice = createSlice({
       state.user = null;
     });
 
-   
     builder.addCase(refreshToken.pending, (state) => {
       state.loading = true;
-      state.lastAction = "refresh_started";
+      state.lastAction = 'refresh_started';
       state.error = null;
     });
     builder.addCase(refreshToken.fulfilled, (state, action) => {
       state.loading = false;
       if (action.payload.access) {
         state.access = action.payload.access;
-        try { localStorage.setItem(ACCESS_KEY, action.payload.access); } catch (e) {}
+        try {
+          localStorage.setItem(ACCESS_KEY, action.payload.access);
+        } catch (e) {}
       }
- 
-      state.lastAction = "refresh_succeeded";
+
+      state.lastAction = 'refresh_succeeded';
     });
     builder.addCase(refreshToken.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload || action.error;
-      state.lastAction = "refresh_failed";
-     
+      state.lastAction = 'refresh_failed';
+
       state.access = null;
       state.refresh = null;
       state.user = null;
@@ -386,30 +382,27 @@ const authSlice = createSlice({
       clearUser();
     });
 
-  // logout  
+    // logout
     builder.addCase(logout.pending, (state) => {
-  
       state.loading = true;
-      state.lastAction = "logout_started";
+      state.lastAction = 'logout_started';
       state.error = null;
     });
     builder.addCase(logout.fulfilled, (state) => {
-    
       state.loading = false;
       state.access = null;
       state.refresh = null;
       state.user = null;
       state.error = null;
-      state.lastAction = "logout_succeeded";
+      state.lastAction = 'logout_succeeded';
       clearTokens();
       clearUser();
     });
     builder.addCase(logout.rejected, (state, action) => {
-    
       state.loading = false;
       state.error = action.payload || action.error;
-      state.lastAction = "logout_failed";
-     
+      state.lastAction = 'logout_failed';
+
       state.access = null;
       state.refresh = null;
       state.user = null;
@@ -417,123 +410,125 @@ const authSlice = createSlice({
       clearUser();
     });
 
- 
     builder.addCase(fetchCurrentUser.pending, (state) => {
       state.loading = true;
-      state.lastAction = "fetchCurrentUser_started";
+      state.lastAction = 'fetchCurrentUser_started';
       state.error = null;
     });
     builder.addCase(fetchCurrentUser.fulfilled, (state, action) => {
       state.loading = false;
       state.user = action.payload;
-      state.lastAction = "fetchCurrentUser_succeeded";
-      
+      state.lastAction = 'fetchCurrentUser_succeeded';
+
       saveUser(action.payload);
     });
     builder.addCase(fetchCurrentUser.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload || action.error;
-      state.lastAction = "fetchCurrentUser_failed";
+      state.lastAction = 'fetchCurrentUser_failed';
     });
 
-    
     builder.addCase(adminListUsers.pending, (state) => {
       state.loading = true;
-      state.lastAction = "adminListUsers_started";
+      state.lastAction = 'adminListUsers_started';
       state.error = null;
     });
     builder.addCase(adminListUsers.fulfilled, (state, action) => {
       state.loading = false;
       state.usersList = action.payload;
-      state.lastAction = "adminListUsers_succeeded";
+      state.lastAction = 'adminListUsers_succeeded';
     });
     builder.addCase(adminListUsers.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload || action.error;
-      state.lastAction = "adminListUsers_failed";
+      state.lastAction = 'adminListUsers_failed';
     });
 
-    
     builder.addCase(adminCreateUser.pending, (state) => {
       state.loading = true;
-      state.lastAction = "adminCreateUser_started";
+      state.lastAction = 'adminCreateUser_started';
       state.error = null;
     });
     builder.addCase(adminCreateUser.fulfilled, (state, action) => {
       state.loading = false;
       state.usersList = [action.payload, ...state.usersList];
-      state.lastAction = "adminCreateUser_succeeded";
+      state.lastAction = 'adminCreateUser_succeeded';
     });
     builder.addCase(adminCreateUser.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload || action.error;
-      state.lastAction = "adminCreateUser_failed";
+      state.lastAction = 'adminCreateUser_failed';
     });
 
-    // admin_update uiser  
+    // admin_update uiser
     builder.addCase(adminUpdateUser.pending, (state) => {
       state.loading = true;
-      state.lastAction = "adminUpdateUser_started";
+      state.lastAction = 'adminUpdateUser_started';
       state.error = null;
     });
     builder.addCase(adminUpdateUser.fulfilled, (state, action) => {
       state.loading = false;
       const updated = action.payload;
-      state.usersList = state.usersList.map((u) => (u.id === updated.id ? updated : u));
-      
+      state.usersList = state.usersList.map((u) =>
+        u.id === updated.id ? updated : u
+      );
+
       if (state.user && state.user.id === updated.id) {
         state.user = { ...state.user, ...updated };
         saveUser(state.user);
       }
-      state.lastAction = "adminUpdateUser_succeeded";
+      state.lastAction = 'adminUpdateUser_succeeded';
     });
     builder.addCase(adminUpdateUser.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload || action.error;
-      state.lastAction = "adminUpdateUser_failed";
+      state.lastAction = 'adminUpdateUser_failed';
     });
 
-    // admin delete user  
+    // admin delete user
     builder.addCase(adminDeleteUser.pending, (state) => {
       state.loading = true;
-      state.lastAction = "adminDeleteUser_started";
+      state.lastAction = 'adminDeleteUser_started';
       state.error = null;
     });
     builder.addCase(adminDeleteUser.fulfilled, (state, action) => {
       state.loading = false;
-      state.usersList = state.usersList.filter((u) => u.id !== action.payload.id);
-      state.lastAction = "adminDeleteUser_succeeded";
+      state.usersList = state.usersList.filter(
+        (u) => u.id !== action.payload.id
+      );
+      state.lastAction = 'adminDeleteUser_succeeded';
     });
     builder.addCase(adminDeleteUser.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload || action.error;
-      state.lastAction = "adminDeleteUser_failed";
+      state.lastAction = 'adminDeleteUser_failed';
     });
 
-  //  password change  
+    //  password change
     builder.addCase(changePassword.pending, (state) => {
       state.loading = true;
-      state.lastAction = "changePassword_started";
+      state.lastAction = 'changePassword_started';
       state.error = null;
     });
     builder.addCase(changePassword.fulfilled, (state, action) => {
       state.loading = false;
-      state.lastAction = "changePassword_succeeded";
+      state.lastAction = 'changePassword_succeeded';
     });
     builder.addCase(changePassword.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload || action.error;
-      state.lastAction = "changePassword_failed";
+      state.lastAction = 'changePassword_failed';
     });
   },
 });
 
 export const { clearAuthState, setLocalRole } = authSlice.actions;
 
-// selectors 
+// selectors
 export const selectAuth = (state) => state.auth;
 export const selectCurrentUser = (state) => state.auth.user;
-export const selectIsAuthenticated = (state) => Boolean(state.auth.access && state.auth.user);
+export const selectIsAuthenticated = (state) =>
+  Boolean(state.auth.access && state.auth.user);
 export const selectUsersList = (state) => state.auth.usersList;
 
 export default authSlice.reducer;

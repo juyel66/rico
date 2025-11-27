@@ -1,13 +1,13 @@
 // src/store/propertyBookingSlice.ts
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
 export const API_BASE =
-  import.meta.env.VITE_API_BASE || "http://10.10.13.60:8000/api";
+  import.meta.env.VITE_API_BASE || 'https://api.eastmondvillas.com/api';
 
 /* --------------------------------
    Auth / Token Helpers (local)
 ----------------------------------- */
-const ACCESS_KEY = "auth_access";
+const ACCESS_KEY = 'auth_access';
 
 export const getAccessToken = () => {
   try {
@@ -26,16 +26,16 @@ const authFetch = (url: string, options: any = {}) => {
   const headers: any = { ...(options.headers || {}) };
   const access = getAccessToken();
 
-  if (access) headers["Authorization"] = `Bearer ${access}`;
+  if (access) headers['Authorization'] = `Bearer ${access}`;
 
   const isForm = options.body instanceof FormData;
   // Only set json content-type when not sending FormData and not already set by caller
-  if (!isForm && !("Content-Type" in headers)) {
-    headers["Content-Type"] = "application/json";
+  if (!isForm && !('Content-Type' in headers)) {
+    headers['Content-Type'] = 'application/json';
   }
-  if (isForm && "Content-Type" in headers) {
+  if (isForm && 'Content-Type' in headers) {
     // ensure the Content-Type header isn't forcing application/json for FormData
-    delete headers["Content-Type"];
+    delete headers['Content-Type'];
   }
 
   return fetch(url, { ...options, headers });
@@ -44,7 +44,10 @@ const authFetch = (url: string, options: any = {}) => {
 /* --------------------------------
    FormData Builder for Properties
 ----------------------------------- */
-function buildPropertyFormData(propertyData: any = {}, mediaFiles: File[] = []) {
+function buildPropertyFormData(
+  propertyData: any = {},
+  mediaFiles: File[] = []
+) {
   const fd = new FormData();
 
   if (mediaFiles.length > 0) {
@@ -52,29 +55,33 @@ function buildPropertyFormData(propertyData: any = {}, mediaFiles: File[] = []) 
       !Array.isArray(propertyData.media_metadata) ||
       propertyData.media_metadata.length !== mediaFiles.length
     ) {
-      throw { detail: "media_files count must match media_metadata count." };
+      throw { detail: 'media_files count must match media_metadata count.' };
     }
   }
 
   for (const [k, v] of Object.entries(propertyData)) {
     if (v === undefined || v === null) continue;
 
-    if (k === "media_metadata") {
+    if (k === 'media_metadata') {
       for (const meta of v) {
         fd.append(
-          "media_metadata",
-          typeof meta === "string" ? meta : JSON.stringify(meta)
+          'media_metadata',
+          typeof meta === 'string' ? meta : JSON.stringify(meta)
         );
       }
       continue;
     }
 
-    if (typeof v === "string" || typeof v === "number" || typeof v === "boolean")
+    if (
+      typeof v === 'string' ||
+      typeof v === 'number' ||
+      typeof v === 'boolean'
+    )
       fd.append(k, String(v));
     else fd.append(k, JSON.stringify(v));
   }
 
-  mediaFiles.forEach((file) => fd.append("media_files", file));
+  mediaFiles.forEach((file) => fd.append('media_files', file));
 
   return fd;
 }
@@ -103,17 +110,24 @@ interface Announcement {
  * - Accepts announcementData (plain object) and files array (File[])
  * - Appends fields and files as `files`
  */
-function buildAnnouncementFormData(announcementData: any = {}, files: File[] = []) {
+function buildAnnouncementFormData(
+  announcementData: any = {},
+  files: File[] = []
+) {
   const fd = new FormData();
 
   for (const [k, v] of Object.entries(announcementData)) {
     if (v === undefined || v === null) continue;
-    if (typeof v === "string" || typeof v === "number" || typeof v === "boolean")
+    if (
+      typeof v === 'string' ||
+      typeof v === 'number' ||
+      typeof v === 'boolean'
+    )
       fd.append(k, String(v));
     else fd.append(k, JSON.stringify(v));
   }
 
-  files.forEach((f) => fd.append("files", f));
+  files.forEach((f) => fd.append('files', f));
   return fd;
 }
 
@@ -131,7 +145,11 @@ function buildResourceFormData(resourceData: any = {}, files: File[] = []) {
 
   for (const [k, v] of Object.entries(resourceData)) {
     if (v === undefined || v === null) continue;
-    if (typeof v === "string" || typeof v === "number" || typeof v === "boolean")
+    if (
+      typeof v === 'string' ||
+      typeof v === 'number' ||
+      typeof v === 'boolean'
+    )
       fd.append(k, String(v));
     else fd.append(k, JSON.stringify(v));
   }
@@ -139,10 +157,10 @@ function buildResourceFormData(resourceData: any = {}, files: File[] = []) {
   if (files && files.length > 0) {
     if (files.length === 1) {
       // Many backends expect the single uploaded file under 'file'
-      fd.append("file", files[0]);
+      fd.append('file', files[0]);
     } else {
       // multi-file case: send under 'files' (array)
-      files.forEach((f) => fd.append("files", f));
+      files.forEach((f) => fd.append('files', f));
     }
   }
 
@@ -153,7 +171,7 @@ function buildResourceFormData(resourceData: any = {}, files: File[] = []) {
    Helper: URL builders
 ----------------------------------- */
 // Build normalized endpoints even if API_BASE may or may not already include '/api'
-const API_ROOT = API_BASE.replace(/\/api\/?$/, "");
+const API_ROOT = API_BASE.replace(/\/api\/?$/, '');
 const ANNOUNCEMENTS_URL = `${API_ROOT}/api/announcements/announcement/`;
 const ACTIVITY_LOGS_URL = `${API_ROOT}/api/activity-log/list/`;
 
@@ -164,7 +182,7 @@ const RESOURCES_URL = `${API_ROOT}/api/resources/`;
    Properties Thunks
 ----------------------------------- */
 export const fetchProperties = createAsyncThunk(
-  "propertyBooking/fetchProperties",
+  'propertyBooking/fetchProperties',
   async (_, { rejectWithValue }) => {
     try {
       const res = await authFetch(`${API_BASE}/villas/properties/`);
@@ -178,10 +196,12 @@ export const fetchProperties = createAsyncThunk(
 );
 
 export const fetchProperty = createAsyncThunk(
-  "propertyBooking/fetchProperty",
+  'propertyBooking/fetchProperty',
   async (propertyId: number, { rejectWithValue }) => {
     try {
-      const res = await authFetch(`${API_BASE}/villas/properties/${propertyId}/`);
+      const res = await authFetch(
+        `${API_BASE}/villas/properties/${propertyId}/`
+      );
       const data = await res.json();
       if (!res.ok) throw data;
       return data;
@@ -192,16 +212,16 @@ export const fetchProperty = createAsyncThunk(
 );
 
 export const createProperty = createAsyncThunk(
-  "propertyBooking/createProperty",
+  'propertyBooking/createProperty',
   async ({ propertyData, mediaFiles }: any, { rejectWithValue }) => {
     try {
       let options: any;
 
       if (mediaFiles?.length > 0) {
         const fd = buildPropertyFormData(propertyData, mediaFiles);
-        options = { method: "POST", body: fd };
+        options = { method: 'POST', body: fd };
       } else {
-        options = { method: "POST", body: JSON.stringify(propertyData) };
+        options = { method: 'POST', body: JSON.stringify(propertyData) };
       }
 
       const res = await authFetch(`${API_BASE}/villas/properties/`, options);
@@ -220,14 +240,19 @@ export const createProperty = createAsyncThunk(
  * updateProperty
  */
 export const updateProperty = createAsyncThunk(
-  "propertyBooking/updateProperty",
+  'propertyBooking/updateProperty',
   async (
     {
       propertyId,
       updates,
       mediaFiles,
       useJson = false,
-    }: { propertyId: number; updates: any; mediaFiles?: File[]; useJson?: boolean },
+    }: {
+      propertyId: number;
+      updates: any;
+      mediaFiles?: File[];
+      useJson?: boolean;
+    },
     { rejectWithValue }
   ) => {
     try {
@@ -236,13 +261,13 @@ export const updateProperty = createAsyncThunk(
       if (!useJson) {
         // prefer FormData by default
         const fd = buildPropertyFormData(updates ?? {}, mediaFiles ?? []);
-        options = { method: "PATCH", body: fd };
+        options = { method: 'PATCH', body: fd };
       } else {
         // send JSON — caller requested JSON explicitly
         options = {
-          method: "PATCH",
+          method: 'PATCH',
           body: JSON.stringify(updates ?? {}),
-          headers: { "Content-Type": "application/json" },
+          headers: { 'Content-Type': 'application/json' },
         };
       }
 
@@ -273,9 +298,14 @@ export const updateProperty = createAsyncThunk(
  * updateMultipleProperties
  */
 export const updateMultipleProperties = createAsyncThunk(
-  "propertyBooking/updateMultipleProperties",
+  'propertyBooking/updateMultipleProperties',
   async (
-    items: Array<{ propertyId: number; updates: any; mediaFiles?: File[]; useJson?: boolean }>,
+    items: Array<{
+      propertyId: number;
+      updates: any;
+      mediaFiles?: File[];
+      useJson?: boolean;
+    }>,
     { rejectWithValue }
   ) => {
     try {
@@ -287,16 +317,19 @@ export const updateMultipleProperties = createAsyncThunk(
           let options: any;
           if (!useJson) {
             const fd = buildPropertyFormData(updates ?? {}, mediaFiles ?? []);
-            options = { method: "PATCH", body: fd };
+            options = { method: 'PATCH', body: fd };
           } else {
             options = {
-              method: "PATCH",
+              method: 'PATCH',
               body: JSON.stringify(updates ?? {}),
-              headers: { "Content-Type": "application/json" },
+              headers: { 'Content-Type': 'application/json' },
             };
           }
 
-          const res = await authFetch(`${API_BASE}/villas/properties/${propertyId}/`, options);
+          const res = await authFetch(
+            `${API_BASE}/villas/properties/${propertyId}/`,
+            options
+          );
 
           let data: any = null;
           try {
@@ -306,12 +339,20 @@ export const updateMultipleProperties = createAsyncThunk(
           }
 
           if (!res.ok) {
-            results.push({ propertyId, ok: false, error: data ?? { detail: `HTTP ${res.status}` } });
+            results.push({
+              propertyId,
+              ok: false,
+              error: data ?? { detail: `HTTP ${res.status}` },
+            });
           } else {
             results.push({ propertyId, ok: true, payload: data });
           }
         } catch (err) {
-          results.push({ propertyId: (it as any).propertyId, ok: false, error: err });
+          results.push({
+            propertyId: (it as any).propertyId,
+            ok: false,
+            error: err,
+          });
         }
       }
 
@@ -323,12 +364,12 @@ export const updateMultipleProperties = createAsyncThunk(
 );
 
 export const deleteProperty = createAsyncThunk(
-  "propertyBooking/deleteProperty",
+  'propertyBooking/deleteProperty',
   async (propertyId: number, { rejectWithValue }) => {
     try {
       const res = await authFetch(
         `${API_BASE}/villas/properties/${propertyId}/`,
-        { method: "DELETE" }
+        { method: 'DELETE' }
       );
 
       if (res.status === 204) return propertyId;
@@ -345,13 +386,13 @@ export const deleteProperty = createAsyncThunk(
    Announcements Thunks (robust & fixed URL)
 ----------------------------------- */
 export const fetchAnnouncements = createAsyncThunk(
-  "propertyBooking/fetchAnnouncements",
+  'propertyBooking/fetchAnnouncements',
   async (_, { rejectWithValue }) => {
     try {
       const res = await authFetch(ANNOUNCEMENTS_URL);
-      const contentType = res.headers.get("content-type") || "";
+      const contentType = res.headers.get('content-type') || '';
       let data: any;
-      if (contentType.includes("application/json")) {
+      if (contentType.includes('application/json')) {
         data = await res.json();
       } else {
         data = await res.text();
@@ -359,7 +400,8 @@ export const fetchAnnouncements = createAsyncThunk(
 
       if (!res.ok) {
         const message =
-          (data && (data.detail || data.message)) || (typeof data === "string" ? data : `HTTP ${res.status}`);
+          (data && (data.detail || data.message)) ||
+          (typeof data === 'string' ? data : `HTTP ${res.status}`);
         return rejectWithValue({ status: res.status, message });
       }
 
@@ -371,31 +413,35 @@ export const fetchAnnouncements = createAsyncThunk(
 );
 
 export const createAnnouncement = createAsyncThunk(
-  "propertyBooking/createAnnouncement",
-  async ({ announcementData, files }: { announcementData: any; files?: File[] }, { rejectWithValue }) => {
+  'propertyBooking/createAnnouncement',
+  async (
+    { announcementData, files }: { announcementData: any; files?: File[] },
+    { rejectWithValue }
+  ) => {
     try {
       let options: any;
 
       if (files && files.length > 0) {
         const fd = buildAnnouncementFormData(announcementData ?? {}, files);
-        options = { method: "POST", body: fd };
+        options = { method: 'POST', body: fd };
       } else {
         options = {
-          method: "POST",
+          method: 'POST',
           body: JSON.stringify({
             title: announcementData.title,
             date: announcementData.date,
             priority: announcementData.priority,
-            description: announcementData.description ?? announcementData.details,
+            description:
+              announcementData.description ?? announcementData.details,
           }),
-          headers: { "Content-Type": "application/json" },
+          headers: { 'Content-Type': 'application/json' },
         };
       }
 
       const res = await authFetch(ANNOUNCEMENTS_URL, options);
-      const contentType = res.headers.get("content-type") || "";
+      const contentType = res.headers.get('content-type') || '';
       let data: any;
-      if (contentType.includes("application/json")) {
+      if (contentType.includes('application/json')) {
         data = await res.json();
       } else {
         data = await res.text();
@@ -403,7 +449,8 @@ export const createAnnouncement = createAsyncThunk(
 
       if (!res.ok) {
         const message =
-          (data && (data.detail || data.message)) || (typeof data === "string" ? data : `HTTP ${res.status}`);
+          (data && (data.detail || data.message)) ||
+          (typeof data === 'string' ? data : `HTTP ${res.status}`);
         return rejectWithValue({ status: res.status, message });
       }
 
@@ -420,13 +467,13 @@ export const createAnnouncement = createAsyncThunk(
    - returns either array or { results: [...] }
 ----------------------------------- */
 export const fetchActivityLogs = createAsyncThunk(
-  "propertyBooking/fetchActivityLogs",
+  'propertyBooking/fetchActivityLogs',
   async (_, { rejectWithValue }) => {
     try {
       const res = await authFetch(ACTIVITY_LOGS_URL);
-      const contentType = res.headers.get("content-type") || "";
+      const contentType = res.headers.get('content-type') || '';
       let data: any;
-      if (contentType.includes("application/json")) {
+      if (contentType.includes('application/json')) {
         data = await res.json();
       } else {
         data = await res.text();
@@ -434,7 +481,8 @@ export const fetchActivityLogs = createAsyncThunk(
 
       if (!res.ok) {
         const message =
-          (data && (data.detail || data.message)) || (typeof data === "string" ? data : `HTTP ${res.status}`);
+          (data && (data.detail || data.message)) ||
+          (typeof data === 'string' ? data : `HTTP ${res.status}`);
         return rejectWithValue({ status: res.status, message });
       }
 
@@ -453,13 +501,13 @@ export const fetchActivityLogs = createAsyncThunk(
    - Accepts JSON or files (FormData)
 ----------------------------------- */
 export const fetchResources = createAsyncThunk(
-  "propertyBooking/fetchResources",
+  'propertyBooking/fetchResources',
   async (_, { rejectWithValue }) => {
     try {
       const res = await authFetch(RESOURCES_URL);
-      const contentType = res.headers.get("content-type") || "";
+      const contentType = res.headers.get('content-type') || '';
       let data: any;
-      if (contentType.includes("application/json")) {
+      if (contentType.includes('application/json')) {
         data = await res.json();
       } else {
         data = await res.text();
@@ -467,7 +515,8 @@ export const fetchResources = createAsyncThunk(
 
       if (!res.ok) {
         const message =
-          (data && (data.detail || data.message)) || (typeof data === "string" ? data : `HTTP ${res.status}`);
+          (data && (data.detail || data.message)) ||
+          (typeof data === 'string' ? data : `HTTP ${res.status}`);
         return rejectWithValue({ status: res.status, message });
       }
 
@@ -484,25 +533,28 @@ export const fetchResources = createAsyncThunk(
  * - if files present it uses FormData, otherwise sends JSON
  */
 export const createResource = createAsyncThunk(
-  "propertyBooking/createResource",
-  async ({ resourceData, files }: { resourceData: any; files?: File[] }, { rejectWithValue }) => {
+  'propertyBooking/createResource',
+  async (
+    { resourceData, files }: { resourceData: any; files?: File[] },
+    { rejectWithValue }
+  ) => {
     try {
       let options: any;
       if (files && files.length > 0) {
         const fd = buildResourceFormData(resourceData ?? {}, files);
-        options = { method: "POST", body: fd };
+        options = { method: 'POST', body: fd };
       } else {
         options = {
-          method: "POST",
+          method: 'POST',
           body: JSON.stringify(resourceData ?? {}),
-          headers: { "Content-Type": "application/json" },
+          headers: { 'Content-Type': 'application/json' },
         };
       }
 
       const res = await authFetch(RESOURCES_URL, options);
-      const contentType = res.headers.get("content-type") || "";
+      const contentType = res.headers.get('content-type') || '';
       let data: any;
-      if (contentType.includes("application/json")) {
+      if (contentType.includes('application/json')) {
         data = await res.json();
       } else {
         data = await res.text();
@@ -510,7 +562,8 @@ export const createResource = createAsyncThunk(
 
       if (!res.ok) {
         const message =
-          (data && (data.detail || data.message)) || (typeof data === "string" ? data : `HTTP ${res.status}`);
+          (data && (data.detail || data.message)) ||
+          (typeof data === 'string' ? data : `HTTP ${res.status}`);
         return rejectWithValue({ status: res.status, message });
       }
 
@@ -525,7 +578,7 @@ export const createResource = createAsyncThunk(
    Bookings Thunks (unchanged)
 ----------------------------------- */
 export const fetchMyBookings = createAsyncThunk(
-  "propertyBooking/fetchMyBookings",
+  'propertyBooking/fetchMyBookings',
   async (_, { rejectWithValue }) => {
     try {
       const res = await authFetch(`${API_BASE}/villas/bookings/`);
@@ -541,11 +594,11 @@ export const fetchMyBookings = createAsyncThunk(
 );
 
 export const createBooking = createAsyncThunk(
-  "propertyBooking/createBooking",
+  'propertyBooking/createBooking',
   async (payload: any, { rejectWithValue }) => {
     try {
       const res = await authFetch(`${API_BASE}/villas/bookings/`, {
-        method: "POST",
+        method: 'POST',
         body: JSON.stringify(payload),
       });
 
@@ -561,16 +614,13 @@ export const createBooking = createAsyncThunk(
 );
 
 export const updateBooking = createAsyncThunk(
-  "propertyBooking/updateBooking",
+  'propertyBooking/updateBooking',
   async ({ bookingId, updates }: any, { rejectWithValue }) => {
     try {
-      const res = await authFetch(
-        `${API_BASE}/villas/bookings/${bookingId}/`,
-        {
-          method: "PATCH",
-          body: JSON.stringify(updates),
-        }
-      );
+      const res = await authFetch(`${API_BASE}/villas/bookings/${bookingId}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(updates),
+      });
 
       const data = await res.json();
 
@@ -584,13 +634,12 @@ export const updateBooking = createAsyncThunk(
 );
 
 export const deleteBooking = createAsyncThunk(
-  "propertyBooking/deleteBooking",
+  'propertyBooking/deleteBooking',
   async (bookingId: number, { rejectWithValue }) => {
     try {
-      const res = await authFetch(
-        `${API_BASE}/villas/bookings/${bookingId}/`,
-        { method: "DELETE" }
-      );
+      const res = await authFetch(`${API_BASE}/villas/bookings/${bookingId}/`, {
+        method: 'DELETE',
+      });
 
       if (res.status === 204) return bookingId;
 
@@ -608,13 +657,17 @@ export const deleteBooking = createAsyncThunk(
    - returns parsed object: { "<propertyId>-<year>-<month>": [1,2,3], ... } as payload
 ----------------------------------- */
 export const fetchMonthlyAgentBookings = createAsyncThunk(
-  "propertyBooking/fetchMonthlyAgentBookings",
+  'propertyBooking/fetchMonthlyAgentBookings',
   async (
-    { month, year, agent }: { month: number; year: number; agent?: number | string },
+    {
+      month,
+      year,
+      agent,
+    }: { month: number; year: number; agent?: number | string },
     { rejectWithValue }
   ) => {
     try {
-      let url = `${API_BASE.replace(/\/$/, "")}/villas/agent/bookings/monthly/?month=${month}&year=${year}`;
+      let url = `${API_BASE.replace(/\/$/, '')}/villas/agent/bookings/monthly/?month=${month}&year=${year}`;
       if (agent !== undefined && agent !== null) {
         // append agent query param if provided
         url += `&agent=${encodeURIComponent(String(agent))}`;
@@ -677,7 +730,7 @@ const initialState: InitialState = {
 };
 
 const propertyBookingSlice = createSlice({
-  name: "propertyBooking",
+  name: 'propertyBooking',
   initialState,
   reducers: {},
 
@@ -714,7 +767,9 @@ const propertyBookingSlice = createSlice({
       const results = action.payload ?? [];
       for (const r of results) {
         if (r?.ok && r.payload && r.payload.id !== undefined) {
-          const idx = state.properties.findIndex((p: any) => p.id === r.payload.id);
+          const idx = state.properties.findIndex(
+            (p: any) => p.id === r.payload.id
+          );
           if (idx > -1) state.properties[idx] = r.payload;
         }
       }
@@ -773,7 +828,9 @@ const propertyBookingSlice = createSlice({
 
     builder.addCase(updateBooking.fulfilled, (state, action) => {
       state.loading = false;
-      const index = state.bookings.findIndex((b: any) => b.id === action.payload.id);
+      const index = state.bookings.findIndex(
+        (b: any) => b.id === action.payload.id
+      );
       if (index > -1) state.bookings[index] = action.payload;
       state.currentBooking = action.payload;
     });
@@ -793,7 +850,9 @@ const propertyBookingSlice = createSlice({
     builder.addCase(fetchMonthlyAgentBookings.fulfilled, (state, action) => {
       state.loading = false;
       state.error = null;
-      const payload = action.payload as { raw: any; month: number; year: number } | any;
+      const payload = action.payload as
+        | { raw: any; month: number; year: number }
+        | any;
       if (!payload) {
         state.monthlyRaw = null;
         state.monthlyBookings = {};
@@ -807,13 +866,23 @@ const propertyBookingSlice = createSlice({
       const d = payload.raw ?? payload;
 
       // robust extraction of data array
-      const dataArray: any[] = Array.isArray(d?.data) ? d.data : Array.isArray(d) ? d : [];
+      const dataArray: any[] = Array.isArray(d?.data)
+        ? d.data
+        : Array.isArray(d)
+          ? d
+          : [];
 
       for (const item of dataArray) {
         // attempt to find property id
         const idCandidates = [
-          item.property, item.propertyId, item.property_id,
-          item.id, item.pk, item.villa, item.villa_id, item.villaId
+          item.property,
+          item.propertyId,
+          item.property_id,
+          item.id,
+          item.pk,
+          item.villa,
+          item.villa_id,
+          item.villaId,
         ];
         let pid: number | null = null;
         for (const c of idCandidates) {
@@ -826,15 +895,20 @@ const propertyBookingSlice = createSlice({
         // collect days in various possible shapes
         let days: number[] = [];
         if (Array.isArray(item.bookedDays)) days = item.bookedDays as number[];
-        else if (Array.isArray(item.booked_days)) days = item.booked_days as number[];
+        else if (Array.isArray(item.booked_days))
+          days = item.booked_days as number[];
         else if (Array.isArray(item.days)) days = item.days as number[];
         else if (Array.isArray(item.bookings)) {
           days = item.bookings
             .map((b: any) => {
-              if (typeof b === "number") return b;
+              if (typeof b === 'number') return b;
               if (b?.day) return Number(b.day);
               if (b?.date) {
-                try { return new Date(b.date).getDate(); } catch { return null; }
+                try {
+                  return new Date(b.date).getDate();
+                } catch {
+                  return null;
+                }
               }
               return null;
             })
@@ -843,14 +917,24 @@ const propertyBookingSlice = createSlice({
 
         // If days are in nested objects
         if (!days.length && item.bookings && Array.isArray(item.bookings)) {
-          days = item.bookings.map((b: any) => (b?.day ? Number(b.day) : (b?.date ? new Date(b.date).getDate() : null))).filter(Boolean);
+          days = item.bookings
+            .map((b: any) =>
+              b?.day
+                ? Number(b.day)
+                : b?.date
+                  ? new Date(b.date).getDate()
+                  : null
+            )
+            .filter(Boolean);
         }
 
         if (pid != null) {
-          const year = payload.year ?? (d?.year ?? null);
-          const month = payload.month ?? (d?.month ?? null);
-          const key = `${pid}-${year ?? "unknownYear"}-${month ?? "unknownMonth"}`;
-          parsedMap[key] = Array.from(new Set((days || []).map((v) => Number(v)).filter(Boolean)));
+          const year = payload.year ?? d?.year ?? null;
+          const month = payload.month ?? d?.month ?? null;
+          const key = `${pid}-${year ?? 'unknownYear'}-${month ?? 'unknownMonth'}`;
+          parsedMap[key] = Array.from(
+            new Set((days || []).map((v) => Number(v)).filter(Boolean))
+          );
         }
       }
 
@@ -859,13 +943,16 @@ const propertyBookingSlice = createSlice({
 
     builder.addCase(fetchMonthlyAgentBookings.rejected, (state, action) => {
       state.loading = false;
-      state.error = action.payload ?? action.error ?? { message: "Failed to fetch monthly bookings" };
+      state.error = action.payload ??
+        action.error ?? { message: 'Failed to fetch monthly bookings' };
       // keep monthlyBookings as-is on failure (or you can clear it)
     });
 
     /* -------- Global Pending & Error -------- */
     builder.addMatcher(
-      (action) => action.type.startsWith("propertyBooking") && action.type.endsWith("pending"),
+      (action) =>
+        action.type.startsWith('propertyBooking') &&
+        action.type.endsWith('pending'),
       (state) => {
         state.loading = true;
         state.error = null;
@@ -874,7 +961,9 @@ const propertyBookingSlice = createSlice({
 
     // ensure we store only serializable error values
     builder.addMatcher(
-      (action) => action.type.startsWith("propertyBooking") && action.type.endsWith("rejected"),
+      (action) =>
+        action.type.startsWith('propertyBooking') &&
+        action.type.endsWith('rejected'),
       (state, action) => {
         state.loading = false;
         const payload = action.payload;
@@ -883,7 +972,7 @@ const propertyBookingSlice = createSlice({
         } else if (action.error && action.error.message) {
           state.error = action.error.message;
         } else {
-          state.error = String(action.error ?? "Unknown error");
+          state.error = String(action.error ?? 'Unknown error');
         }
       }
     );
@@ -893,9 +982,13 @@ const propertyBookingSlice = createSlice({
 export const propertiesAndBookingReducer = propertyBookingSlice.reducer;
 
 /* ------------- Selectors (you can import these) ------------- */
-export const selectAllProperties = (state: any) => state.propertyBooking.properties;
-export const selectMonthlyBookings = (state: any) => state.propertyBooking.monthlyBookings;
-export const selectMonthlyRaw = (state: any) => state.propertyBooking.monthlyRaw;
-export const selectPropertyById = (state: any, id: number) => state.propertyBooking.properties.find((p: any) => p.id === id);
+export const selectAllProperties = (state: any) =>
+  state.propertyBooking.properties;
+export const selectMonthlyBookings = (state: any) =>
+  state.propertyBooking.monthlyBookings;
+export const selectMonthlyRaw = (state: any) =>
+  state.propertyBooking.monthlyRaw;
+export const selectPropertyById = (state: any, id: number) =>
+  state.propertyBooking.properties.find((p: any) => p.id === id);
 
 export default propertyBookingSlice.reducer;

@@ -1,12 +1,12 @@
 // src/features/Properties/PropertiesSales.tsx
-import React, { useState, useMemo, useEffect } from "react";
-import { Search, MapPin } from "lucide-react";
-import { Link } from "react-router-dom";
+import React, { useState, useMemo, useEffect } from 'react';
+import { Search, MapPin } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 /**
  * PropertiesSales.tsx
  * - Same UI/design as your Rentals page
- * - Fetches sale properties from: http://10.10.13.60:8000/villas/properties/?listing_type=sale
+ * - Fetches sale properties from: https://api.eastmondvillas.com/villas/properties/?listing_type=sale
  * - Shows only assigned properties:
  *     - If agentId prop is provided -> shows properties where assigned_agent === agentId
  *     - If agentId prop is not provided -> shows properties where assigned_agent is present (any agent)
@@ -22,12 +22,12 @@ interface Property {
   bedrooms: number;
   bathrooms: number;
   pool: number;
-  status: "published" | "draft" | "pending";
+  status: 'published' | 'draft' | 'pending';
   imageUrl: string;
   description?: string | null;
   calendar_link?: string | null;
   _raw?: any;
-  listing_type?: "sale" | "rent" | "other";
+  listing_type?: 'sale' | 'rent' | 'other';
   assigned_agent?: number | null;
 }
 
@@ -35,58 +35,68 @@ interface Property {
 const initialProperties: Property[] = [
   {
     id: 111111111,
-    title: "Seaside Luxury Villa",
-    address: "12 Ocean View Blvd, Malibu, CA",
+    title: 'Seaside Luxury Villa',
+    address: '12 Ocean View Blvd, Malibu, CA',
     price: 5200000,
     bedrooms: 6,
     bathrooms: 7,
     pool: 2,
-    status: "published",
+    status: 'published',
     imageUrl:
-      "https://images.unsplash.com/photo-1507089947368-19c1da9775ae?auto=format&fit=crop&w=400&q=80",
-    listing_type: "sale",
+      'https://images.unsplash.com/photo-1507089947368-19c1da9775ae?auto=format&fit=crop&w=400&q=80',
+    listing_type: 'sale',
     assigned_agent: null,
   },
   {
     id: 222222222,
-    title: "Urban Loft Penthouse",
-    address: "88 Skyline Ave, San Francisco, CA",
+    title: 'Urban Loft Penthouse',
+    address: '88 Skyline Ave, San Francisco, CA',
     price: 3200000,
     bedrooms: 3,
     bathrooms: 3,
     pool: 0,
-    status: "published",
+    status: 'published',
     imageUrl:
-      "https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=400&q=80",
-    listing_type: "sale",
+      'https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=400&q=80',
+    listing_type: 'sale',
     assigned_agent: 87,
   },
 ];
 
 // --- API base (defaults to your server) ---
 const API_BASE =
-  (import.meta as any).env?.VITE_API_BASE?.replace(/\/+$/, "") ||
-  "http://10.10.13.60:8000";
+  (import.meta as any).env?.VITE_API_BASE?.replace(/\/+$/, '') ||
+  'https://api.eastmondvillas.com';
 
 // --- PRICE FORMATTER ---
 const formatPrice = (amount: number) => {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
     minimumFractionDigits: 0,
   }).format(amount);
 };
 
 // --- PROPERTY CARD (same look as Rentals card) ---
 const PropertyCard: React.FC<{ property: Property }> = ({ property }) => {
-  const { id, title, address, price, bedrooms, bathrooms, pool, status, imageUrl, assigned_agent } =
-    property;
+  const {
+    id,
+    title,
+    address,
+    price,
+    bedrooms,
+    bathrooms,
+    pool,
+    status,
+    imageUrl,
+    assigned_agent,
+  } = property;
 
-  const StatusBadge = ({ status }: { status: Property["status"] }) => {
-    let bgColor = "bg-gray-100 text-gray-700";
-    if (status === "published") bgColor = "bg-green-100 text-green-700";
-    else if (status === "draft") bgColor = "bg-yellow-100 text-yellow-700";
-    else if (status === "pending") bgColor = "bg-blue-100 text-blue-700";
+  const StatusBadge = ({ status }: { status: Property['status'] }) => {
+    let bgColor = 'bg-gray-100 text-gray-700';
+    if (status === 'published') bgColor = 'bg-green-100 text-green-700';
+    else if (status === 'draft') bgColor = 'bg-yellow-100 text-yellow-700';
+    else if (status === 'pending') bgColor = 'bg-blue-100 text-blue-700';
     return (
       <span
         className={`text-xs font-semibold py-1 px-3 rounded-full ${bgColor}`}
@@ -98,7 +108,7 @@ const PropertyCard: React.FC<{ property: Property }> = ({ property }) => {
 
   const copyToClipboard = async (text: string, action: string) => {
     try {
-      if (!text || String(text).trim() === "") {
+      if (!text || String(text).trim() === '') {
         alert(`${action} is not available for ${title}`);
         return;
       }
@@ -106,11 +116,11 @@ const PropertyCard: React.FC<{ property: Property }> = ({ property }) => {
       alert(`${action} copied for ${title}`);
     } catch (err) {
       try {
-        const el = document.createElement("textarea");
+        const el = document.createElement('textarea');
         el.value = String(text);
         document.body.appendChild(el);
         el.select();
-        document.execCommand("copy");
+        document.execCommand('copy');
         document.body.removeChild(el);
         alert(`${action} copied for ${title}`);
       } catch {
@@ -121,30 +131,30 @@ const PropertyCard: React.FC<{ property: Property }> = ({ property }) => {
 
   const downloadImage = async (imgUrl?: string | null) => {
     if (!imgUrl) {
-      alert("No image available to download.");
+      alert('No image available to download.');
       return;
     }
     try {
       const url =
-        String(imgUrl).startsWith("http") || String(imgUrl).startsWith("//")
+        String(imgUrl).startsWith('http') || String(imgUrl).startsWith('//')
           ? String(imgUrl)
-          : `${API_BASE.replace(/\/api\/?$/, "")}${imgUrl.startsWith("/") ? imgUrl : "/" + imgUrl}`;
+          : `${API_BASE.replace(/\/api\/?$/, '')}${imgUrl.startsWith('/') ? imgUrl : '/' + imgUrl}`;
 
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const blob = await res.blob();
       const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = blobUrl;
-      const ext = blob.type.split("/")[1] || "jpg";
-      a.download = `${title.replace(/\s+/g, "-").toLowerCase() || "image"}.${ext}`;
+      const ext = blob.type.split('/')[1] || 'jpg';
+      a.download = `${title.replace(/\s+/g, '-').toLowerCase() || 'image'}.${ext}`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(blobUrl);
     } catch (err) {
-      console.error("Download error:", err);
-      alert("Failed to download image.");
+      console.error('Download error:', err);
+      alert('Failed to download image.');
     }
   };
 
@@ -158,7 +168,7 @@ const PropertyCard: React.FC<{ property: Property }> = ({ property }) => {
           className="w-full h-full object-cover rounded-xl"
           onError={(e) => {
             (e.target as HTMLImageElement).src =
-              "https://placehold.co/400x300/D1D5DB/4B5563?text=NO+IMAGE";
+              'https://placehold.co/400x300/D1D5DB/4B5563?text=NO+IMAGE';
           }}
         />
       </div>
@@ -167,14 +177,17 @@ const PropertyCard: React.FC<{ property: Property }> = ({ property }) => {
       <div className="flex-grow flex flex-col justify-between">
         <div>
           <div className="flex justify-between items-start mb-2">
-            <h2 className="text-lg font-bold text-gray-900 truncate">{title}</h2>
+            <h2 className="text-lg font-bold text-gray-900 truncate">
+              {title}
+            </h2>
             <div className="flex items-center gap-2">
               <StatusBadge status={status} />
-              {typeof assigned_agent !== "undefined" && assigned_agent !== null && (
-                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 whitespace-nowrap">
-                  Agent #{assigned_agent}
-                </span>
-              )}
+              {typeof assigned_agent !== 'undefined' &&
+                assigned_agent !== null && (
+                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 whitespace-nowrap">
+                    Agent #{assigned_agent}
+                  </span>
+                )}
             </div>
           </div>
 
@@ -186,7 +199,9 @@ const PropertyCard: React.FC<{ property: Property }> = ({ property }) => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-y-2 text-sm">
             <div>
               <p className="text-gray-500 text-xs uppercase">Price</p>
-              <p className="font-semibold text-gray-800">{formatPrice(price)}</p>
+              <p className="font-semibold text-gray-800">
+                {formatPrice(price)}
+              </p>
             </div>
             <div>
               <p className="text-gray-500 text-xs uppercase">Bedrooms</p>
@@ -207,7 +222,7 @@ const PropertyCard: React.FC<{ property: Property }> = ({ property }) => {
         <div
           className="flex flex-wrap lg:flex-nowrap items-center justify-between gap-3 mt-4 pt-4 border-t border-gray-100"
           style={{
-            rowGap: "8px",
+            rowGap: '8px',
           }}
         >
           <Link
@@ -224,7 +239,10 @@ const PropertyCard: React.FC<{ property: Property }> = ({ property }) => {
 
           <button
             onClick={() =>
-              copyToClipboard(property.description ?? `${title} - ${address}`, "Description")
+              copyToClipboard(
+                property.description ?? `${title} - ${address}`,
+                'Description'
+              )
             }
             className="flex w-full items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition whitespace-nowrap"
           >
@@ -238,7 +256,7 @@ const PropertyCard: React.FC<{ property: Property }> = ({ property }) => {
 
           <button
             onClick={() =>
-              copyToClipboard(property.calendar_link ?? "", "Calendar Link")
+              copyToClipboard(property.calendar_link ?? '', 'Calendar Link')
             }
             className="flex w-full items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition whitespace-nowrap"
           >
@@ -275,18 +293,19 @@ type Props = {
 };
 
 const PropertiesSales: React.FC<Props> = ({ agentId: propAgentId = null }) => {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const [properties, setProperties] = useState<Property[]>(initialProperties);
   const [loading, setLoading] = useState<boolean>(false);
 
   // Resolve agentId (prop first, then localStorage if available)
   const resolvedAgentId = useMemo(() => {
-    if (typeof propAgentId === "number" && !isNaN(propAgentId)) return propAgentId;
+    if (typeof propAgentId === 'number' && !isNaN(propAgentId))
+      return propAgentId;
     try {
       const fromLS =
-        localStorage.getItem("agent_id") ??
-        localStorage.getItem("assigned_agent") ??
-        localStorage.getItem("agentId");
+        localStorage.getItem('agent_id') ??
+        localStorage.getItem('assigned_agent') ??
+        localStorage.getItem('agentId');
       if (fromLS) {
         const n = Number(fromLS);
         if (!isNaN(n)) return n;
@@ -303,52 +322,68 @@ const PropertiesSales: React.FC<Props> = ({ agentId: propAgentId = null }) => {
     const load = async () => {
       setLoading(true);
       try {
-        const url = `${API_BASE.replace(/\/+$/, "")}/villas/properties/?listing_type=sale`;
-        const res = await fetch(url, { headers: { Accept: "application/json" } });
+        const url = `${API_BASE.replace(/\/+$/, '')}/villas/properties/?listing_type=sale`;
+        const res = await fetch(url, {
+          headers: { Accept: 'application/json' },
+        });
         if (!res.ok) {
-          console.warn("Properties API fetch failed:", res.status);
+          console.warn('Properties API fetch failed:', res.status);
           if (!cancelled) setProperties(initialProperties);
           return;
         }
         const data = await res.json();
-        const list = Array.isArray(data) ? data : data?.results ?? data?.items ?? [];
+        const list = Array.isArray(data)
+          ? data
+          : (data?.results ?? data?.items ?? []);
         const mapped: Property[] = list.map((p: any) => {
           let img = p.main_image_url ?? p.imageUrl ?? null;
-          if (!img && Array.isArray(p.media_images) && p.media_images.length > 0) {
+          if (
+            !img &&
+            Array.isArray(p.media_images) &&
+            p.media_images.length > 0
+          ) {
             img = p.media_images[0]?.image ?? null;
           }
-          if (img && img.startsWith("/")) {
-            img = `${API_BASE.replace(/\/api\/?$/, "")}${img}`;
+          if (img && img.startsWith('/')) {
+            img = `${API_BASE.replace(/\/api\/?$/, '')}${img}`;
           }
           const priceVal =
             Number(p.price ?? p.price_display ?? p.total_price ?? 0) || 0;
           const address =
-            p.address ?? (p.location ? (typeof p.location === "string" ? p.location : "") : "") ?? p.city ?? "";
+            p.address ??
+            (p.location
+              ? typeof p.location === 'string'
+                ? p.location
+                : ''
+              : '') ??
+            p.city ??
+            '';
           return {
             id: Number(p.id ?? p.pk ?? Math.floor(Math.random() * 1e9)),
-            title: p.title ?? p.name ?? p.slug ?? "Untitled",
-            address: address || "—",
+            title: p.title ?? p.name ?? p.slug ?? 'Untitled',
+            address: address || '—',
             price: priceVal,
             bedrooms: Number(p.bedrooms ?? p.num_bedrooms ?? 0),
             bathrooms: Number(p.bathrooms ?? p.num_bathrooms ?? 0),
             pool: Number(p.pool ?? 0),
             status:
-              (String(p.status ?? p.state ?? "draft").toLowerCase() as
-                | "published"
-                | "draft"
-                | "pending") ?? "draft",
+              (String(p.status ?? p.state ?? 'draft').toLowerCase() as
+                | 'published'
+                | 'draft'
+                | 'pending') ?? 'draft',
             imageUrl: img || initialProperties[0].imageUrl,
             description: p.description ?? p.short_description ?? null,
             calendar_link: p.calendar_link ?? p.google_calendar_id ?? null,
             _raw: p,
-            listing_type: p.listing_type ?? "sale",
+            listing_type: p.listing_type ?? 'sale',
             assigned_agent: p.assigned_agent ?? null,
           };
         });
 
-        if (!cancelled) setProperties(mapped.length ? mapped : initialProperties);
+        if (!cancelled)
+          setProperties(mapped.length ? mapped : initialProperties);
       } catch (err) {
-        console.error("Failed to load properties", err);
+        console.error('Failed to load properties', err);
         if (!cancelled) setProperties(initialProperties);
       } finally {
         if (!cancelled) setLoading(false);
@@ -366,18 +401,26 @@ const PropertiesSales: React.FC<Props> = ({ agentId: propAgentId = null }) => {
   const filteredProperties = useMemo(() => {
     const lower = searchTerm.toLowerCase();
     return properties.filter((p) => {
-      if ((p.listing_type ?? "sale") !== "sale") return false;
+      if ((p.listing_type ?? 'sale') !== 'sale') return false;
 
       if (resolvedAgentId !== null) {
         // show only properties assigned to this specific agent
-        if (Number(p.assigned_agent ?? -1) !== Number(resolvedAgentId)) return false;
+        if (Number(p.assigned_agent ?? -1) !== Number(resolvedAgentId))
+          return false;
       } else {
         // show only properties that are assigned to any agent
-        if (p.assigned_agent === null || typeof p.assigned_agent === "undefined") return false;
+        if (
+          p.assigned_agent === null ||
+          typeof p.assigned_agent === 'undefined'
+        )
+          return false;
       }
 
       if (!lower) return true;
-      return p.title.toLowerCase().includes(lower) || p.address.toLowerCase().includes(lower);
+      return (
+        p.title.toLowerCase().includes(lower) ||
+        p.address.toLowerCase().includes(lower)
+      );
     });
   }, [searchTerm, properties, resolvedAgentId]);
 
@@ -394,7 +437,10 @@ const PropertiesSales: React.FC<Props> = ({ agentId: propAgentId = null }) => {
 
           <div className="mt-3 text-sm text-gray-500">
             {resolvedAgentId !== null ? (
-              <>Showing sales assigned to agent <strong>{resolvedAgentId}</strong>.</>
+              <>
+                Showing sales assigned to agent{' '}
+                <strong>{resolvedAgentId}</strong>.
+              </>
             ) : (
               <>Showing sales assigned to any agent.</>
             )}
@@ -413,7 +459,9 @@ const PropertiesSales: React.FC<Props> = ({ agentId: propAgentId = null }) => {
         </div>
 
         {loading && (
-          <div className="text-center text-gray-500 mb-6">Loading properties…</div>
+          <div className="text-center text-gray-500 mb-6">
+            Loading properties…
+          </div>
         )}
 
         {filteredProperties.map((property) => (
@@ -423,8 +471,8 @@ const PropertiesSales: React.FC<Props> = ({ agentId: propAgentId = null }) => {
         {!loading && filteredProperties.length === 0 && (
           <div className="text-center text-gray-500">
             {resolvedAgentId !== null
-              ? "No sales properties found assigned to this agent."
-              : "No sales properties found that are assigned to any agent."}
+              ? 'No sales properties found assigned to this agent.'
+              : 'No sales properties found that are assigned to any agent.'}
           </div>
         )}
       </div>

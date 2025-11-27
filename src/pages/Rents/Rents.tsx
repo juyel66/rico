@@ -1,7 +1,7 @@
 // File: Rents.tsx
-import React, { useEffect, useState } from "react";
-import RentsCard from "./RentsCard";
-import FilterSystem from "@/shared/FilterSystem";
+import React, { useEffect, useState } from 'react';
+import RentsCard from './RentsCard';
+import FilterSystem from '@/shared/FilterSystem';
 
 interface VillaType {
   id: number;
@@ -48,7 +48,9 @@ const Pagination: React.FC<PaginationProps> = ({
   return (
     <div className="flex flex-col sm:flex-row justify-between items-center py-6 container mx-auto">
       <div className="text-sm font-medium text-gray-600 mb-4 sm:mb-0">
-        {totalResults === 0 ? "Showing 0 results" : `Showing ${start} to ${end} of ${totalResults} results`}
+        {totalResults === 0
+          ? 'Showing 0 results'
+          : `Showing ${start} to ${end} of ${totalResults} results`}
       </div>
       <div className="flex items-center">
         <button
@@ -64,12 +66,12 @@ const Pagination: React.FC<PaginationProps> = ({
             key={page}
             className={`w-10 h-10 mx-1 flex items-center justify-center rounded-lg text-sm font-semibold ${
               page === currentPage
-                ? "bg-white text-gray-900 border shadow-md"
-                : "text-gray-600 hover:bg-gray-100"
+                ? 'bg-white text-gray-900 border shadow-md'
+                : 'text-gray-600 hover:bg-gray-100'
             }`}
             onClick={() => onPageChange(page)}
           >
-            {String(page).padStart(2, "0")}
+            {String(page).padStart(2, '0')}
           </button>
         ))}
 
@@ -85,9 +87,10 @@ const Pagination: React.FC<PaginationProps> = ({
   );
 };
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://10.10.13.60:8000/api";
+const API_BASE =
+  import.meta.env.VITE_API_BASE || 'https://api.eastmondvillas.com/api';
 const PLACEHOLDER_IMG =
-  "https://res.cloudinary.com/dqkczdjjs/image/upload/v1760924064/img_5_sd6ueh.png";
+  'https://res.cloudinary.com/dqkczdjjs/image/upload/v1760924064/img_5_sd6ueh.png';
 
 const Rents: React.FC = () => {
   const resultsPerPage = 2;
@@ -113,42 +116,68 @@ const Rents: React.FC = () => {
       try {
         const res = await fetch(`${API_BASE}/villas/properties/`);
         if (!res.ok) {
-          const text = await res.text().catch(() => "");
+          const text = await res.text().catch(() => '');
           throw new Error(`API error: ${res.status} ${text}`);
         }
         const data = await res.json();
 
         // data might be an object with results or a plain array depending on your backend
-        const items: any[] = Array.isArray(data) ? data : (data.results ?? data.items ?? []);
+        const items: any[] = Array.isArray(data)
+          ? data
+          : (data.results ?? data.items ?? []);
 
         // filter for rentals (server sample had listing_type: "rent")
-        const rentals = items.filter((it) => (String(it.listing_type || "")).toLowerCase() === "rent");
+        const rentals = items.filter(
+          (it) => String(it.listing_type || '').toLowerCase() === 'rent'
+        );
 
         // map server item to VillaType used by RentsCard
         const mapped: VillaType[] = rentals.map((it) => {
           const firstImage =
-            (it.media_images && Array.isArray(it.media_images) && it.media_images[0]?.image) ||
-            (it.bedrooms_images && Array.isArray(it.bedrooms_images) && it.bedrooms_images[0]?.image) ||
+            (it.media_images &&
+              Array.isArray(it.media_images) &&
+              it.media_images[0]?.image) ||
+            (it.bedrooms_images &&
+              Array.isArray(it.bedrooms_images) &&
+              it.bedrooms_images[0]?.image) ||
             PLACEHOLDER_IMG;
 
           const amenities: string[] = [];
-          if (it.signature_distinctions && typeof it.signature_distinctions === "object") {
-            if (Array.isArray(it.signature_distinctions)) amenities.push(...it.signature_distinctions);
-            else amenities.push(...Object.values(it.signature_distinctions || {}).map(String));
+          if (
+            it.signature_distinctions &&
+            typeof it.signature_distinctions === 'object'
+          ) {
+            if (Array.isArray(it.signature_distinctions))
+              amenities.push(...it.signature_distinctions);
+            else
+              amenities.push(
+                ...Object.values(it.signature_distinctions || {}).map(String)
+              );
           }
           if (it.outdoor_amenities) {
-            if (Array.isArray(it.outdoor_amenities)) amenities.push(...it.outdoor_amenities);
-            else amenities.push(...Object.values(it.outdoor_amenities || {}).map(String));
+            if (Array.isArray(it.outdoor_amenities))
+              amenities.push(...it.outdoor_amenities);
+            else
+              amenities.push(
+                ...Object.values(it.outdoor_amenities || {}).map(String)
+              );
           }
           if (it.interior_amenities) {
-            if (Array.isArray(it.interior_amenities)) amenities.push(...it.interior_amenities);
-            else amenities.push(...Object.values(it.interior_amenities || {}).map(String));
+            if (Array.isArray(it.interior_amenities))
+              amenities.push(...it.interior_amenities);
+            else
+              amenities.push(
+                ...Object.values(it.interior_amenities || {}).map(String)
+              );
           }
 
           return {
             id: Number(it.id),
-            title: it.title || it.slug || "Untitled",
-            location: (it.city && String(it.city).replace(/(^"|"$)/g, "")) || it.address || "Unknown location",
+            title: it.title || it.slug || 'Untitled',
+            location:
+              (it.city && String(it.city).replace(/(^"|"$)/g, '')) ||
+              it.address ||
+              'Unknown location',
             price: Number(it.price) || 0,
             rating: Number(it.property_stats?.average_rating) || 0,
             reviewCount: Number(it.property_stats?.total_bookings) || 0,
@@ -156,7 +185,10 @@ const Rents: React.FC = () => {
             baths: Number(it.bathrooms) || 0,
             pool: Number(it.pool) || 0,
             amenities: amenities.filter(Boolean),
-            rateType: (String(it.listing_type).toLowerCase() === "rent" ? "per night" : "sale"),
+            rateType:
+              String(it.listing_type).toLowerCase() === 'rent'
+                ? 'per night'
+                : 'sale',
             imageUrl: firstImage,
           } as VillaType;
         });
@@ -168,8 +200,8 @@ const Rents: React.FC = () => {
         }
       } catch (err: any) {
         if (!cancelled) {
-          console.error("Failed to fetch villas:", err);
-          setError(err?.message || "Failed to load rentals");
+          console.error('Failed to fetch villas:', err);
+          setError(err?.message || 'Failed to load rentals');
           setAllVillas([]);
           setFilteredVillas([]);
         }
@@ -205,7 +237,7 @@ const Rents: React.FC = () => {
       style={{
         backgroundImage:
           "url('https://res.cloudinary.com/dqkczdjjs/image/upload/v1760812885/savba_k7kol1.png')",
-        marginBottom: "620px",
+        marginBottom: '620px',
       }}
     >
       {/* pass master data into FilterSystem and receive filtered results via onResults */}

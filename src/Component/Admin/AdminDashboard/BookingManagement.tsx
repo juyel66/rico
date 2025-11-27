@@ -1,7 +1,7 @@
 // File: BookingManagement.tsx
-import React, { useEffect, useState } from "react";
-import { Trash2 } from "lucide-react";
-import Swal from "sweetalert2";
+import React, { useEffect, useState } from 'react';
+import { Trash2 } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 type Booking = {
   id: number;
@@ -17,11 +17,12 @@ type Booking = {
   [k: string]: any;
 };
 
-const ACCESS_KEY = "auth_access";
+const ACCESS_KEY = 'auth_access';
 
 // build endpoint robustly (avoid double /api)
-const RAW_BASE = import.meta.env?.VITE_API_BASE || "http://10.10.13.60:8000";
-const BASE_NO_SLASH = RAW_BASE.replace(/\/+$/, "");
+const RAW_BASE =
+  import.meta.env?.VITE_API_BASE || 'https://api.eastmondvillas.com';
+const BASE_NO_SLASH = RAW_BASE.replace(/\/+$/, '');
 const BOOKINGS_ENDPOINT = /\/api(\/|$)/i.test(BASE_NO_SLASH)
   ? `${BASE_NO_SLASH}/villas/bookings/`
   : `${BASE_NO_SLASH}/api/villas/bookings/`;
@@ -34,10 +35,16 @@ const getAccessToken = (): string | null => {
   }
 };
 
-const STATUS_OPTIONS = ["pending", "rejected", "completed", "cancelled", "approved"];
+const STATUS_OPTIONS = [
+  'pending',
+  'rejected',
+  'completed',
+  'cancelled',
+  'approved',
+];
 
 function capitalize(s?: string) {
-  if (!s) return "";
+  if (!s) return '';
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
@@ -46,18 +53,18 @@ function capitalize(s?: string) {
  */
 function getSelectStatusClass(status?: string) {
   switch (status) {
-    case "completed":
-      return "bg-green-100 text-green-800 border-green-200";
-    case "rejected":
-      return "bg-red-100 text-red-800 border-red-200";
-    case "pending":
-      return "bg-yellow-100 text-yellow-800 border-yellow-200";
-    case "cancelled":
-      return "bg-yellow-50 text-yellow-800 border-yellow-200";
-    case "approved":
-      return "bg-blue-100 text-blue-800 border-blue-200";
+    case 'completed':
+      return 'bg-green-100 text-green-800 border-green-200';
+    case 'rejected':
+      return 'bg-red-100 text-red-800 border-red-200';
+    case 'pending':
+      return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    case 'cancelled':
+      return 'bg-yellow-50 text-yellow-800 border-yellow-200';
+    case 'approved':
+      return 'bg-blue-100 text-blue-800 border-blue-200';
     default:
-      return "bg-gray-100 text-gray-800 border-gray-200";
+      return 'bg-gray-100 text-gray-800 border-gray-200';
   }
 }
 
@@ -65,11 +72,13 @@ export default function BookingManagement(): JSX.Element {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState('');
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   // track which booking(s) are being updated for status (id -> boolean)
-  const [statusUpdating, setStatusUpdating] = useState<Record<number, boolean>>({});
+  const [statusUpdating, setStatusUpdating] = useState<Record<number, boolean>>(
+    {}
+  );
 
   const redirectToLogin = () => {
     const next = window.location.pathname + window.location.search;
@@ -80,16 +89,16 @@ export default function BookingManagement(): JSX.Element {
     setLoading(true);
     setError(null);
     try {
-      const headers: any = { Accept: "application/json" };
+      const headers: any = { Accept: 'application/json' };
       const token = getAccessToken();
       if (token) headers.Authorization = `Bearer ${token}`;
 
       const res = await fetch(BOOKINGS_ENDPOINT, { headers });
       if (!res.ok) {
-        const text = await res.text().catch(() => "");
+        const text = await res.text().catch(() => '');
         // If unauthorized, redirect to login
         if (res.status === 401 || res.status === 403) {
-          setError("Authentication required. Redirecting to login...");
+          setError('Authentication required. Redirecting to login...');
           redirectToLogin();
           return;
         }
@@ -100,11 +109,11 @@ export default function BookingManagement(): JSX.Element {
       // Accept paginated response with results or plain array
       const list: Booking[] = Array.isArray(data)
         ? data
-        : data?.results ?? data?.bookings ?? [];
+        : (data?.results ?? data?.bookings ?? []);
       setBookings(list);
     } catch (err: any) {
-      console.error("Failed to fetch bookings:", err);
-      setError(err?.message ?? "Failed to load bookings");
+      console.error('Failed to fetch bookings:', err);
+      setError(err?.message ?? 'Failed to load bookings');
       setBookings([]);
     } finally {
       setLoading(false);
@@ -120,13 +129,17 @@ export default function BookingManagement(): JSX.Element {
   const filtered = bookings.filter((b) => {
     const q = query.toLowerCase().trim();
     if (!q) return true;
-    const idStr = String(b.id ?? "");
-    const name = String(b.full_name ?? b.user_details?.name ?? "").toLowerCase();
-    const email = String(b.email ?? b.user_details?.email ?? "").toLowerCase();
-    const phone = String(b.phone ?? "").toLowerCase();
-    const checkIn = String(b.check_in ?? "").toLowerCase();
-    const checkOut = String(b.check_out ?? "").toLowerCase();
-    const prop = String(b.property_details?.title ?? b.property_details?.id ?? "").toLowerCase();
+    const idStr = String(b.id ?? '');
+    const name = String(
+      b.full_name ?? b.user_details?.name ?? ''
+    ).toLowerCase();
+    const email = String(b.email ?? b.user_details?.email ?? '').toLowerCase();
+    const phone = String(b.phone ?? '').toLowerCase();
+    const checkIn = String(b.check_in ?? '').toLowerCase();
+    const checkOut = String(b.check_out ?? '').toLowerCase();
+    const prop = String(
+      b.property_details?.title ?? b.property_details?.id ?? ''
+    ).toLowerCase();
 
     return (
       idStr.includes(q) ||
@@ -144,13 +157,13 @@ export default function BookingManagement(): JSX.Element {
     if (!b) return;
 
     const confirmation = await Swal.fire({
-      title: "Are you sure?",
-      html: `<div>Delete booking for <strong>${b.full_name ?? "Guest"}</strong><br/><span class="text-sm text-gray-500">${b.email ?? ""}</span></div>`,
-      icon: "warning",
+      title: 'Are you sure?',
+      html: `<div>Delete booking for <strong>${b.full_name ?? 'Guest'}</strong><br/><span class="text-sm text-gray-500">${b.email ?? ''}</span></div>`,
+      icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Yes, delete it!",
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, delete it!',
       reverseButtons: true,
     });
 
@@ -161,35 +174,35 @@ export default function BookingManagement(): JSX.Element {
     setBookings((prevList) => prevList.filter((x) => x.id !== id));
 
     try {
-      const headers: any = { Accept: "application/json" };
+      const headers: any = { Accept: 'application/json' };
       const token = getAccessToken();
       if (token) headers.Authorization = `Bearer ${token}`;
 
       const deleteUrl = `${BOOKINGS_ENDPOINT}${id}/`;
       const res = await fetch(deleteUrl, {
-        method: "DELETE",
+        method: 'DELETE',
         headers,
       });
 
       if (res.status === 204 || res.ok) {
         await Swal.fire({
-          title: "Deleted!",
-          text: "The booking has been deleted.",
-          icon: "success",
+          title: 'Deleted!',
+          text: 'The booking has been deleted.',
+          icon: 'success',
           timer: 1400,
           showConfirmButton: false,
         });
       } else {
-        const txt = await res.text().catch(() => "");
+        const txt = await res.text().catch(() => '');
         throw new Error(`Delete failed ${res.status} ${txt}`);
       }
     } catch (err: any) {
-      console.error("Delete error:", err);
+      console.error('Delete error:', err);
       setBookings(prev);
       await Swal.fire({
-        title: "Error",
-        text: "Failed to delete booking. See console for details.",
-        icon: "error",
+        title: 'Error',
+        text: 'Failed to delete booking. See console for details.',
+        icon: 'error',
       });
     } finally {
       setDeletingId(null);
@@ -203,19 +216,21 @@ export default function BookingManagement(): JSX.Element {
 
     // confirm quick prompt
     const { isConfirmed } = await Swal.fire({
-      title: "Change status?",
-      html: `<div>Set booking for <strong>${booking.full_name ?? "Guest"}</strong> to <strong>${capitalize(newStatus)}</strong>?</div>`,
-      icon: "question",
+      title: 'Change status?',
+      html: `<div>Set booking for <strong>${booking.full_name ?? 'Guest'}</strong> to <strong>${capitalize(newStatus)}</strong>?</div>`,
+      icon: 'question',
       showCancelButton: true,
-      confirmButtonText: "Yes, change it",
-      cancelButtonText: "Cancel",
+      confirmButtonText: 'Yes, change it',
+      cancelButtonText: 'Cancel',
     });
 
     if (!isConfirmed) return;
 
     // optimistic UI update
     const prevBookings = bookings.slice();
-    setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status: newStatus } : b)));
+    setBookings((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, status: newStatus } : b))
+    );
     setStatusUpdating((s) => ({ ...s, [id]: true }));
 
     try {
@@ -223,9 +238,9 @@ export default function BookingManagement(): JSX.Element {
       if (!token) {
         // require login to update
         await Swal.fire({
-          title: "Login required",
-          text: "You must be logged in to change status. Redirecting to login.",
-          icon: "warning",
+          title: 'Login required',
+          text: 'You must be logged in to change status. Redirecting to login.',
+          icon: 'warning',
         });
         setBookings(prevBookings);
         redirectToLogin();
@@ -233,8 +248,8 @@ export default function BookingManagement(): JSX.Element {
       }
 
       const headers: any = {
-        "Content-Type": "application/json",
-        Accept: "application/json",
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
         Authorization: `Bearer ${token}`,
       };
 
@@ -242,7 +257,7 @@ export default function BookingManagement(): JSX.Element {
       const patchUrl = `${BOOKINGS_ENDPOINT}${id}/`;
 
       const res = await fetch(patchUrl, {
-        method: "PATCH",
+        method: 'PATCH',
         headers,
         body: JSON.stringify({ status: newStatus }),
       });
@@ -261,37 +276,42 @@ export default function BookingManagement(): JSX.Element {
         // If unauthorized, redirect to login
         if (res.status === 401 || res.status === 403) {
           await Swal.fire({
-            title: "Authentication required",
-            text: "Please log in to change booking status.",
-            icon: "warning",
+            title: 'Authentication required',
+            text: 'Please log in to change booking status.',
+            icon: 'warning',
           });
           redirectToLogin();
           return;
         }
 
-        const txt = body && (body.detail || JSON.stringify(body)) ? (body.detail || JSON.stringify(body)) : `HTTP ${res.status}`;
+        const txt =
+          body && (body.detail || JSON.stringify(body))
+            ? body.detail || JSON.stringify(body)
+            : `HTTP ${res.status}`;
         throw new Error(txt);
       }
 
       // success feedback
       await Swal.fire({
-        title: "Updated",
+        title: 'Updated',
         text: `Status changed to ${capitalize(newStatus)}.`,
-        icon: "success",
+        icon: 'success',
         timer: 1200,
         showConfirmButton: false,
       });
 
       // if server returned updated booking, merge it
       if (body && body.id) {
-        setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, ...body } : b)));
+        setBookings((prev) =>
+          prev.map((b) => (b.id === id ? { ...b, ...body } : b))
+        );
       }
     } catch (err: any) {
-      console.error("Status update error:", err);
+      console.error('Status update error:', err);
       await Swal.fire({
-        title: "Error",
-        text: "This date already booking approved",
-        icon: "error",
+        title: 'Error',
+        text: 'This date already booking approved',
+        icon: 'error',
       });
     } finally {
       setStatusUpdating((s) => {
@@ -306,8 +326,12 @@ export default function BookingManagement(): JSX.Element {
     <div className="p-4 sm:p-6 md:p-8">
       <div>
         <div className="mb-6 text-center">
-          <h1 className="text-2xl sm:text-3xl font-semibold mb-1">Booking management</h1>
-          <p className="text-sm text-gray-600 mb-4 mt-4">Total booking: {bookings.length}</p>
+          <h1 className="text-2xl sm:text-3xl font-semibold mb-1">
+            Booking management
+          </h1>
+          <p className="text-sm text-gray-600 mb-4 mt-4">
+            Total booking: {bookings.length}
+          </p>
 
           <input
             type="search"
@@ -336,7 +360,8 @@ export default function BookingManagement(): JSX.Element {
                 <th className="px-6 py-3">Name</th>
                 <th className="px-6 py-3">Email</th>
                 <th className="px-6 py-3">Phone</th>
-                <th className="px-6 py-3">Property</th> {/* NEW: Property column */}
+                <th className="px-6 py-3">Property</th>{' '}
+                {/* NEW: Property column */}
                 <th className="px-6 py-3">Check In</th>
                 <th className="px-6 py-3">Check Out</th>
                 <th className="px-6 py-3">Status</th>
@@ -347,7 +372,10 @@ export default function BookingManagement(): JSX.Element {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={9} className="px-6 py-6 text-center text-gray-500">
+                  <td
+                    colSpan={9}
+                    className="px-6 py-6 text-center text-gray-500"
+                  >
                     Loading bookings...
                   </td>
                 </tr>
@@ -357,13 +385,20 @@ export default function BookingManagement(): JSX.Element {
                 filtered.map((b, idx) => (
                   <tr key={b.id ?? idx} className="border-t hover:bg-gray-50">
                     <td className="px-6 py-4">{idx + 1}</td>
-                    <td className="px-6 py-4">{b.full_name ?? b.user_details?.name}</td>
-                    <td className="px-6 py-4 text-gray-600">{b.email ?? b.user_details?.email}</td>
+                    <td className="px-6 py-4">
+                      {b.full_name ?? b.user_details?.name}
+                    </td>
+                    <td className="px-6 py-4 text-gray-600">
+                      {b.email ?? b.user_details?.email}
+                    </td>
                     <td className="px-6 py-4">{b.phone}</td>
 
                     {/* NEW: display property title or fallback to id or em-dash */}
                     <td className="px-6 py-4">
-                      {b.property_details?.title ?? (b.property_details?.id ? `#${b.property_details.id}` : "—")}
+                      {b.property_details?.title ??
+                        (b.property_details?.id
+                          ? `#${b.property_details.id}`
+                          : '—')}
                     </td>
 
                     <td className="px-6 py-4">{b.check_in}</td>
@@ -372,8 +407,10 @@ export default function BookingManagement(): JSX.Element {
                     {/* Status dropdown (desktop) - colored select showing current status color */}
                     <td className="px-6 py-4">
                       <select
-                        value={b.status ?? "pending"}
-                        onChange={(e) => handleChangeStatus(b.id, e.target.value)}
+                        value={b.status ?? 'pending'}
+                        onChange={(e) =>
+                          handleChangeStatus(b.id, e.target.value)
+                        }
                         disabled={!!statusUpdating[b.id]}
                         className={`border rounded px-2 py-1 ${getSelectStatusClass(b.status)}`}
                         title="Change booking status"
@@ -384,7 +421,11 @@ export default function BookingManagement(): JSX.Element {
                           </option>
                         ))}
                       </select>
-                      {statusUpdating[b.id] && <span className="ml-2 text-xs text-gray-500">Updating…</span>}
+                      {statusUpdating[b.id] && (
+                        <span className="ml-2 text-xs text-gray-500">
+                          Updating…
+                        </span>
+                      )}
                     </td>
 
                     <td className="px-6 py-4">
@@ -392,7 +433,8 @@ export default function BookingManagement(): JSX.Element {
                         onClick={() => handleDelete(b.id)}
                         className="flex items-center justify-center gap-2 px-3 py-2 rounded-md text-white text-sm"
                         style={{
-                          backgroundColor: deletingId === b.id ? "#9B1C1C" : "#DC2626",
+                          backgroundColor:
+                            deletingId === b.id ? '#9B1C1C' : '#DC2626',
                         }}
                         disabled={deletingId === b.id}
                         title="Delete booking"
@@ -405,7 +447,10 @@ export default function BookingManagement(): JSX.Element {
 
               {!loading && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-6 py-6 text-center text-gray-500">
+                  <td
+                    colSpan={9}
+                    className="px-6 py-6 text-center text-gray-500"
+                  >
                     No bookings found.
                   </td>
                 </tr>
@@ -416,17 +461,24 @@ export default function BookingManagement(): JSX.Element {
 
         {/* Mobile View */}
         <div className="lg:hidden mt-6 space-y-4">
-          {loading && <div className="text-center text-gray-500">Loading bookings...</div>}
+          {loading && (
+            <div className="text-center text-gray-500">Loading bookings...</div>
+          )}
 
           {!loading &&
             filtered.map((b, idx) => (
-              <div key={b.id ?? idx} className="bg-white border rounded-lg p-4 shadow-sm">
+              <div
+                key={b.id ?? idx}
+                className="bg-white border rounded-lg p-4 shadow-sm"
+              >
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="text-sm font-semibold">
                       {idx + 1}. {b.full_name ?? b.user_details?.name}
                     </div>
-                    <div className="text-xs text-gray-600">{b.email ?? b.user_details?.email}</div>
+                    <div className="text-xs text-gray-600">
+                      {b.email ?? b.user_details?.email}
+                    </div>
                     <div className="text-xs text-gray-600">{b.phone}</div>
                   </div>
                   <div className="text-right">
@@ -443,7 +495,12 @@ export default function BookingManagement(): JSX.Element {
 
                   <div>
                     <div className="text-xs text-gray-500">Property</div>
-                    <div>{b.property_details?.title ?? (b.property_details?.id ? `#${b.property_details.id}` : "—")}</div>
+                    <div>
+                      {b.property_details?.title ??
+                        (b.property_details?.id
+                          ? `#${b.property_details.id}`
+                          : '—')}
+                    </div>
                   </div>
 
                   <div className="col-span-2 mt-3">
@@ -452,8 +509,10 @@ export default function BookingManagement(): JSX.Element {
                         <div className="text-xs text-gray-500">Status</div>
 
                         <select
-                          value={b.status ?? "pending"}
-                          onChange={(e) => handleChangeStatus(b.id, e.target.value)}
+                          value={b.status ?? 'pending'}
+                          onChange={(e) =>
+                            handleChangeStatus(b.id, e.target.value)
+                          }
                           disabled={!!statusUpdating[b.id]}
                           className={`w-full border rounded px-2 py-1 ${getSelectStatusClass(b.status)}`}
                         >
@@ -470,7 +529,8 @@ export default function BookingManagement(): JSX.Element {
                           onClick={() => handleDelete(b.id)}
                           className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-md text-white text-sm"
                           style={{
-                            backgroundColor: deletingId === b.id ? "#9B1C1C" : "#DC2626",
+                            backgroundColor:
+                              deletingId === b.id ? '#9B1C1C' : '#DC2626',
                           }}
                           disabled={deletingId === b.id}
                         >
@@ -478,14 +538,20 @@ export default function BookingManagement(): JSX.Element {
                         </button>
                       </div>
                     </div>
-                    {statusUpdating[b.id] && <div className="mt-2 text-xs text-gray-500">Updating…</div>}
+                    {statusUpdating[b.id] && (
+                      <div className="mt-2 text-xs text-gray-500">
+                        Updating…
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             ))}
 
           {!loading && filtered.length === 0 && (
-            <div className="text-center text-sm text-gray-500">No bookings found.</div>
+            <div className="text-center text-sm text-gray-500">
+              No bookings found.
+            </div>
           )}
         </div>
       </div>

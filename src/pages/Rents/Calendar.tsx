@@ -250,30 +250,19 @@
 
 // export default Calendar;
 
-
-
-
-
-
-
-
-
-
-
-
-
 // src/components/PropertyCalendar.tsx
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 type BookingRange = { start: string; end: string }; // ISO date strings "YYYY-MM-DD"
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://10.10.13.60:8000/api";
+const API_BASE =
+  import.meta.env.VITE_API_BASE || 'https://api.eastmondvillas.com/api';
 
 function toISO(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 function parseISO(s: string) {
-  const [y, m, day] = s.split("-").map(Number);
+  const [y, m, day] = s.split('-').map(Number);
   return new Date(y, m - 1, day);
 }
 function eachDateStringBetween(startISO: string, endISO: string) {
@@ -300,22 +289,37 @@ const getCalendarDays = (date: Date): CalendarDay[] => {
   const startDayOfWeek = firstDayOfMonth.getDay();
 
   const calendarDays: CalendarDay[] = [];
-  for (let i = 0; i < startDayOfWeek; i++) calendarDays.push({ date: null, key: `pad-start-${i}`, isCurrentMonth: false });
-  for (let day = 1; day <= daysInMonth; day++) calendarDays.push({
-    date: new Date(year, month, day),
-    key: `${year}-${month + 1}-${day}`,
-    isCurrentMonth: true,
-  });
+  for (let i = 0; i < startDayOfWeek; i++)
+    calendarDays.push({
+      date: null,
+      key: `pad-start-${i}`,
+      isCurrentMonth: false,
+    });
+  for (let day = 1; day <= daysInMonth; day++)
+    calendarDays.push({
+      date: new Date(year, month, day),
+      key: `${year}-${month + 1}-${day}`,
+      isCurrentMonth: true,
+    });
   const totalSlots = calendarDays.length;
   const neededTrailingPadding = (7 - (totalSlots % 7)) % 7;
-  for (let i = 0; i < neededTrailingPadding; i++) calendarDays.push({ date: null, key: `pad-end-${i}`, isCurrentMonth: false });
+  for (let i = 0; i < neededTrailingPadding; i++)
+    calendarDays.push({
+      date: null,
+      key: `pad-end-${i}`,
+      isCurrentMonth: false,
+    });
   return calendarDays;
 };
 
-async function fetchAvailabilityFromApi(villaId: number, month: number, year: number) {
+async function fetchAvailabilityFromApi(
+  villaId: number,
+  month: number,
+  year: number
+) {
   const url = new URL(`${API_BASE}/villas/properties/${villaId}/availability/`);
-  url.searchParams.set("month", String(month));
-  url.searchParams.set("year", String(year));
+  url.searchParams.set('month', String(month));
+  url.searchParams.set('year', String(year));
   const res = await fetch(url.toString());
   if (!res.ok) {
     const txt = await res.text().catch(() => null);
@@ -325,7 +329,10 @@ async function fetchAvailabilityFromApi(villaId: number, month: number, year: nu
   return data;
 }
 
-interface Props { villaId?: number; initialDate?: Date; }
+interface Props {
+  villaId?: number;
+  initialDate?: Date;
+}
 
 const Calendar: React.FC<Props> = ({ villaId, initialDate }) => {
   // Guard: require villaId
@@ -333,7 +340,7 @@ const Calendar: React.FC<Props> = ({ villaId, initialDate }) => {
 
   useEffect(() => {
     if (villaId === undefined || villaId === null) {
-      console.error("[PropertyCalendar] villaId is required");
+      console.error('[PropertyCalendar] villaId is required');
       setMissingVillaId(true);
     } else {
       setMissingVillaId(false);
@@ -341,18 +348,33 @@ const Calendar: React.FC<Props> = ({ villaId, initialDate }) => {
   }, [villaId]);
 
   const [startMonthDate, setStartMonthDate] = useState<Date>(
-    initialDate ? new Date(initialDate.getFullYear(), initialDate.getMonth(), 1) : new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+    initialDate
+      ? new Date(initialDate.getFullYear(), initialDate.getMonth(), 1)
+      : new Date(new Date().getFullYear(), new Date().getMonth(), 1)
   );
-  const secondMonthDate = useMemo(() => new Date(startMonthDate.getFullYear(), startMonthDate.getMonth() + 1, 1), [startMonthDate]);
+  const secondMonthDate = useMemo(
+    () =>
+      new Date(startMonthDate.getFullYear(), startMonthDate.getMonth() + 1, 1),
+    [startMonthDate]
+  );
 
   const [bookedDates, setBookedDates] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
-  const monthsToFetch = useMemo(() => [
-    { month: startMonthDate.getMonth() + 1, year: startMonthDate.getFullYear() },
-    { month: secondMonthDate.getMonth() + 1, year: secondMonthDate.getFullYear() },
-  ], [startMonthDate, secondMonthDate]);
+  const monthsToFetch = useMemo(
+    () => [
+      {
+        month: startMonthDate.getMonth() + 1,
+        year: startMonthDate.getFullYear(),
+      },
+      {
+        month: secondMonthDate.getMonth() + 1,
+        year: secondMonthDate.getFullYear(),
+      },
+    ],
+    [startMonthDate, secondMonthDate]
+  );
 
   // Fetch availability only when villaId is present
   useEffect(() => {
@@ -364,7 +386,11 @@ const Calendar: React.FC<Props> = ({ villaId, initialDate }) => {
       try {
         const sets: string[] = [];
         for (const m of monthsToFetch) {
-          const ranges = await fetchAvailabilityFromApi(villaId, m.month, m.year);
+          const ranges = await fetchAvailabilityFromApi(
+            villaId,
+            m.month,
+            m.year
+          );
           for (const r of ranges) {
             const dates = eachDateStringBetween(r.start, r.end);
             sets.push(...dates);
@@ -373,49 +399,70 @@ const Calendar: React.FC<Props> = ({ villaId, initialDate }) => {
         if (!mounted) return;
         setBookedDates(new Set(sets));
       } catch (err: any) {
-        console.error("Availability fetch error:", err);
+        console.error('Availability fetch error:', err);
         if (mounted) setFetchError(String(err?.detail ?? err?.message ?? err));
       } finally {
         if (mounted) setLoading(false);
       }
     })();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [villaId, monthsToFetch]);
 
-  const handlePrev = () => setStartMonthDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
-  const handleNext = () => setStartMonthDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  const handlePrev = () =>
+    setStartMonthDate(
+      (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1)
+    );
+  const handleNext = () =>
+    setStartMonthDate(
+      (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1)
+    );
 
-  const isDateBooked = useCallback((d: Date | null) => {
-    if (!d) return false;
-    return bookedDates.has(toISO(d));
-  }, [bookedDates]);
+  const isDateBooked = useCallback(
+    (d: Date | null) => {
+      if (!d) return false;
+      return bookedDates.has(toISO(d));
+    },
+    [bookedDates]
+  );
 
   if (missingVillaId) {
     return (
       <div className="p-6 bg-white border rounded text-red-600">
-        Villa ID is required for the calendar to work. Pass <strong>villaId</strong> to PropertyCalendar.
+        Villa ID is required for the calendar to work. Pass{' '}
+        <strong>villaId</strong> to PropertyCalendar.
       </div>
     );
   }
 
   const CalendarMonth: React.FC<{ monthDate: Date }> = ({ monthDate }) => {
     const days = getCalendarDays(monthDate);
-    const monthName = monthDate.toLocaleString("en-US", { month: "long", year: "numeric" });
+    const monthName = monthDate.toLocaleString('en-US', {
+      month: 'long',
+      year: 'numeric',
+    });
 
     return (
       <div className="p-6 bg-white rounded-xl border-2 flex-1 min-w-[280px] relative">
         <h3 className="text-lg font-semibold mb-3">{monthName}</h3>
         <div className="grid grid-cols-7 gap-1 text-xs font-semibold text-gray-500 mb-2">
-          {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(w => <div key={w} className="text-center">{w}</div>)}
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((w) => (
+            <div key={w} className="text-center">
+              {w}
+            </div>
+          ))}
         </div>
         <div className="grid grid-cols-7 gap-2">
           {days.map(({ date, key, isCurrentMonth }) => {
-            if (!isCurrentMonth || !date) return <div key={key} className="h-10 w-10" />;
+            if (!isCurrentMonth || !date)
+              return <div key={key} className="h-10 w-10" />;
             const iso = toISO(date);
             const booked = isDateBooked(date);
 
             // Booked: yellow (not clickable). Available: green (not clickable as requested).
-            const btnBase = "flex items-center justify-center h-10 w-10 text-sm font-medium rounded-full transition-colors duration-150";
+            const btnBase =
+              'flex items-center justify-center h-10 w-10 text-sm font-medium rounded-full transition-colors duration-150';
             const classes = booked
               ? `${btnBase} bg-yellow-100 text-yellow-700 border border-yellow-300 cursor-default`
               : `${btnBase} bg-green-100 text-green-700 border border-green-300 cursor-default`;
@@ -442,11 +489,23 @@ const Calendar: React.FC<Props> = ({ villaId, initialDate }) => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-bold">Availability Calendar</h2>
-          <p className="text-sm text-gray-600">Yellow = booked. Green = available (read-only).</p>
+          <p className="text-sm text-gray-600">
+            Yellow = booked. Green = available (read-only).
+          </p>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={handlePrev} className="px-3 py-2 rounded border hover:bg-gray-50">Previous</button>
-          <button onClick={handleNext} className="px-3 py-2 rounded border hover:bg-gray-50">Next</button>
+          <button
+            onClick={handlePrev}
+            className="px-3 py-2 rounded border hover:bg-gray-50"
+          >
+            Previous
+          </button>
+          <button
+            onClick={handleNext}
+            className="px-3 py-2 rounded border hover:bg-gray-50"
+          >
+            Next
+          </button>
         </div>
       </div>
 
@@ -467,10 +526,23 @@ const Calendar: React.FC<Props> = ({ villaId, initialDate }) => {
                 role="img"
                 aria-label="Loading"
               >
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                ></path>
               </svg>
-              <div className="mt-3 text-sm text-gray-700">Loading availability…</div>
+              <div className="mt-3 text-sm text-gray-700">
+                Loading availability…
+              </div>
             </div>
           </div>
         )}
@@ -486,7 +558,7 @@ const Calendar: React.FC<Props> = ({ villaId, initialDate }) => {
         )}
 
         {/* actual content (shows even when loading but visually subdued by overlay) */}
-        <div className={`${loading ? "opacity-100" : ""}`}>
+        <div className={`${loading ? 'opacity-100' : ''}`}>
           <div className="flex flex-col lg:flex-row gap-6">
             <CalendarMonth monthDate={startMonthDate} />
             <CalendarMonth monthDate={secondMonthDate} />
@@ -494,11 +566,20 @@ const Calendar: React.FC<Props> = ({ villaId, initialDate }) => {
         </div>
       </div>
 
-      {fetchError && <div className="mb-4 text-sm text-red-600 mt-4">Error: {fetchError}</div>}
+      {fetchError && (
+        <div className="mb-4 text-sm text-red-600 mt-4">
+          Error: {fetchError}
+        </div>
+      )}
 
       <div className="mt-6 flex items-center gap-4">
-        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-green-500"></span> Available (read-only)</div>
-        <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-yellow-500"></span> Booked</div>
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full bg-green-500"></span> Available
+          (read-only)
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full bg-yellow-500"></span> Booked
+        </div>
       </div>
     </div>
   );

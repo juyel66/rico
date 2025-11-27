@@ -1,9 +1,9 @@
 // Profile.jsx
-import React, { useEffect, useState } from "react";
-import { Edit2, X, CheckCircle, Lock, Mail, Phone, User } from "lucide-react";
-import Swal from "sweetalert2";
-import "sweetalert2/dist/sweetalert2.min.css";
-import toast from "react-hot-toast";
+import React, { useEffect, useState } from 'react';
+import { Edit2, X, CheckCircle, Lock, Mail, Phone, User } from 'lucide-react';
+import Swal from 'sweetalert2';
+import 'sweetalert2/dist/sweetalert2.min.css';
+import toast from 'react-hot-toast';
 
 /**
  * Profile.jsx
@@ -16,114 +16,142 @@ import toast from "react-hot-toast";
  * Note: ensure auth access token stored at localStorage.auth_access
  */
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://10.10.13.60:8000/api";
+const API_BASE =
+  import.meta.env.VITE_API_BASE || 'https://api.eastmondvillas.com/api';
 
 const initialProfileData = {
-  initials: "JS",
-  name: "John Smith",
-  email: "john.smith@realestate.com",
-  role: "agent",
-  date_joined: "2025-02-01T00:00:00Z",
-  status: "Active Agent",
-  memberSince: "Feb 2025",
+  initials: 'JS',
+  name: 'John Smith',
+  email: 'john.smith@realestate.com',
+  role: 'agent',
+  date_joined: '2025-02-01T00:00:00Z',
+  status: 'Active Agent',
+  memberSince: 'Feb 2025',
   stats: {
     totalProperties: 3,
     totalDownloads: 24,
   },
   metrics: [
     {
-      title: "Assigned Properties",
+      title: 'Assigned Properties',
       count: 3,
-      img: "https://res.cloudinary.com/dqkczdjjs/image/upload/v1760912317/Container_4_mdn7xb.png",
-      color: "text-blue-500",
-      bg: "bg-blue-50",
+      img: 'https://res.cloudinary.com/dqkczdjjs/image/upload/v1760912317/Container_4_mdn7xb.png',
+      color: 'text-blue-500',
+      bg: 'bg-blue-50',
     },
     {
-      title: "Active Listings",
+      title: 'Active Listings',
       count: 3,
-      img: "https://res.cloudinary.com/dqkczdjjs/image/upload/v1760913301/Container_5_vn6hql.png",
-      color: "text-green-500",
-      bg: "bg-green-50",
+      img: 'https://res.cloudinary.com/dqkczdjjs/image/upload/v1760913301/Container_5_vn6hql.png',
+      color: 'text-green-500',
+      bg: 'bg-green-50',
     },
     {
-      title: "Downloads This Month",
+      title: 'Downloads This Month',
       count: 24,
-      img: "https://res.cloudinary.com/dqkczdjjs/image/upload/v1760913571/Container_7_dur80i.png",
-      color: "text-purple-500",
-      bg: "bg-purple-50",
+      img: 'https://res.cloudinary.com/dqkczdjjs/image/upload/v1760913571/Container_7_dur80i.png',
+      color: 'text-purple-500',
+      bg: 'bg-purple-50',
     },
     {
-      title: "Scheduled Viewings",
+      title: 'Scheduled Viewings',
       count: 8,
-      img: "https://res.cloudinary.com/dqkczdjjs/image/upload/v1760913561/Container_8_tgnlcm.png",
-      color: "text-orange-500",
-      bg: "bg-orange-50",
+      img: 'https://res.cloudinary.com/dqkczdjjs/image/upload/v1760913561/Container_8_tgnlcm.png',
+      color: 'text-orange-500',
+      bg: 'bg-orange-50',
     },
   ],
   personalInfo: {
-    fullName: "John Smith",
-    emailAddress: "john.smith@realestate.com",
-    phoneNumber: "+1 (555) 123-4567",
-    accountStatus: "Active",
+    fullName: 'John Smith',
+    emailAddress: 'john.smith@realestate.com',
+    phoneNumber: '+1 (555) 123-4567',
+    accountStatus: 'Active',
     professionalBio:
-      "As a seasoned real estate professional with over 10 years of experience, John specializes in luxury waterfront villas in the Miami area.",
+      'As a seasoned real estate professional with over 10 years of experience, John specializes in luxury waterfront villas in the Miami area.',
   },
 };
 
-const safe = (v, fallback = "") => (v === null || v === undefined ? fallback : v);
+const safe = (v, fallback = '') =>
+  v === null || v === undefined ? fallback : v;
 
 const MetricCard = ({ metric }) => (
   <div className="bg-white rounded-xl shadow-md p-4 flex items-center justify-between border border-gray-100 transition hover:shadow-lg">
     <div>
-      <p className="text-3xl font-semibold text-gray-900 mb-1">{metric.count}</p>
+      <p className="text-3xl font-semibold text-gray-900 mb-1">
+        {metric.count}
+      </p>
       <p className="text-sm text-gray-500">{metric.title}</p>
     </div>
-    <div className={`p-2 rounded-xl ${metric.bg} flex items-center justify-center`}>
-      <img src={metric.img} alt={metric.title} className="w-12 h-12 object-contain" />
+    <div
+      className={`p-2 rounded-xl ${metric.bg} flex items-center justify-center`}
+    >
+      <img
+        src={metric.img}
+        alt={metric.title}
+        className="w-12 h-12 object-contain"
+      />
     </div>
   </div>
 );
 
 const InfoField = ({ label, value, status, isBio = false, icon: Icon }) => {
   const statusClasses =
-    status === "Active" ? "bg-green-100 text-green-700" : status === "Active Agent" ? "bg-teal-100 text-teal-700 font-medium" : "bg-gray-100 text-gray-700";
-  const placeholderText = isBio ? "Tell us about your real estate experience and specialties..." : "N/A";
+    status === 'Active'
+      ? 'bg-green-100 text-green-700'
+      : status === 'Active Agent'
+        ? 'bg-teal-100 text-teal-700 font-medium'
+        : 'bg-gray-100 text-gray-700';
+  const placeholderText = isBio
+    ? 'Tell us about your real estate experience and specialties...'
+    : 'N/A';
   const displayValue = value || placeholderText;
   const isPlaceholder = !value && !status;
 
   return (
     <div className="flex flex-col mb-4">
       <p className="text-sm font-medium text-gray-500 mb-1">{label}</p>
-      <div className={`p-3 rounded-lg border border-gray-200 flex items-center ${isBio ? "h-24" : ""}`}>
+      <div
+        className={`p-3 rounded-lg border border-gray-200 flex items-center ${isBio ? 'h-24' : ''}`}
+      >
         {Icon && !isBio && <Icon className="w-5 h-5 text-gray-400 mr-2" />}
         {status ? (
-          <span className={`text-xs px-2 py-1 rounded-full ${statusClasses}`}>{status}</span>
+          <span className={`text-xs px-2 py-1 rounded-full ${statusClasses}`}>
+            {status}
+          </span>
         ) : (
-          <span className={`text-base ${isPlaceholder ? "text-gray-400 italic" : "text-gray-900"}`}>{displayValue}</span>
+          <span
+            className={`text-base ${isPlaceholder ? 'text-gray-400 italic' : 'text-gray-900'}`}
+          >
+            {displayValue}
+          </span>
         )}
       </div>
-      {isBio && <p className="text-xs text-gray-500 mt-1">This bio will be visible to clients and team members</p>}
+      {isBio && (
+        <p className="text-xs text-gray-500 mt-1">
+          This bio will be visible to clients and team members
+        </p>
+      )}
     </div>
   );
 };
 
 const EditProfileModal = ({ isOpen, onClose, currentInfo = {}, onSave }) => {
   const [formData, setFormData] = useState({
-    fullName: currentInfo.fullName || "",
-    emailAddress: currentInfo.emailAddress || "",
-    phoneNumber: currentInfo.phoneNumber || "",
-    accountStatus: currentInfo.accountStatus || "Active",
-    professionalBio: currentInfo.professionalBio || "",
+    fullName: currentInfo.fullName || '',
+    emailAddress: currentInfo.emailAddress || '',
+    phoneNumber: currentInfo.phoneNumber || '',
+    accountStatus: currentInfo.accountStatus || 'Active',
+    professionalBio: currentInfo.professionalBio || '',
   });
 
   // keep form in sync when currentInfo changes
   React.useEffect(() => {
     setFormData({
-      fullName: currentInfo.fullName || "",
-      emailAddress: currentInfo.emailAddress || "",
-      phoneNumber: currentInfo.phoneNumber || "",
-      accountStatus: currentInfo.accountStatus || "Active",
-      professionalBio: currentInfo.professionalBio || "",
+      fullName: currentInfo.fullName || '',
+      emailAddress: currentInfo.emailAddress || '',
+      phoneNumber: currentInfo.phoneNumber || '',
+      accountStatus: currentInfo.accountStatus || 'Active',
+      professionalBio: currentInfo.professionalBio || '',
     });
   }, [currentInfo]);
 
@@ -131,13 +159,20 @@ const EditProfileModal = ({ isOpen, onClose, currentInfo = {}, onSave }) => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData((p) => ({ ...p, [name]: type === "checkbox" ? checked : value }));
+    setFormData((p) => ({
+      ...p,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
   };
 
   const handleSave = () => {
     // basic validation
     if (!formData.fullName || !formData.emailAddress) {
-      Swal.fire({ icon: "error", title: "Validation", text: "Name and email are required." });
+      Swal.fire({
+        icon: 'error',
+        title: 'Validation',
+        text: 'Name and email are required.',
+      });
       return;
     }
     onSave(formData);
@@ -148,8 +183,13 @@ const EditProfileModal = ({ isOpen, onClose, currentInfo = {}, onSave }) => {
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl">
         <div className="flex justify-between items-center p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900">Edit Personal Information</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <h2 className="text-xl font-bold text-gray-900">
+            Edit Personal Information
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -157,7 +197,9 @@ const EditProfileModal = ({ isOpen, onClose, currentInfo = {}, onSave }) => {
         <div className="p-6 overflow-y-auto max-h-[80vh]">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
             <div className="relative">
-              <label className="text-sm font-medium text-gray-700 mb-1 block">Full Name</label>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">
+                Full Name
+              </label>
               <div className="relative">
                 <input
                   type="text"
@@ -172,10 +214,12 @@ const EditProfileModal = ({ isOpen, onClose, currentInfo = {}, onSave }) => {
             </div>
 
             <div className="relative">
-              <label  className="text-sm read-only: font-medium  text-gray-700 mb-1 block">Email Address</label>
+              <label className="text-sm read-only: font-medium  text-gray-700 mb-1 block">
+                Email Address
+              </label>
               <div className="relative">
                 <input
-                disabled
+                  disabled
                   type="email"
                   name="emailAddress"
                   value={formData.emailAddress}
@@ -188,7 +232,9 @@ const EditProfileModal = ({ isOpen, onClose, currentInfo = {}, onSave }) => {
             </div>
 
             <div className="relative">
-              <label className="text-sm font-medium text-gray-700 mb-1 block">Phone Number</label>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">
+                Phone Number
+              </label>
               <div className="relative">
                 <input
                   type="tel"
@@ -202,39 +248,50 @@ const EditProfileModal = ({ isOpen, onClose, currentInfo = {}, onSave }) => {
               </div>
             </div>
 
-          <div>
-  <label className="text-sm font-medium text-gray-700 mb-1 block">Account Status</label>
-  <div className="relative w-full">
-    {/* This div acts as the bordered container, similar to an input field */}
-    <div
-      className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-opacity-50
-                 flex items-center" 
-      style={{ borderColor: formData.accountStatus === "Active" ? '#34D399' : '#EF4444' }} // Green for Active, Red for Inactive
-    >
-      {formData.accountStatus === "Active" ? (
-        <span className="text-green-500">Active</span>
-      ) : (
-        <span className="text-red-500">Inactive</span>
-      )}
-    </div>
-  </div>
-</div>
-
-
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">
+                Account Status
+              </label>
+              <div className="relative w-full">
+                {/* This div acts as the bordered container, similar to an input field */}
+                <div
+                  className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-opacity-50
+                 flex items-center"
+                  style={{
+                    borderColor:
+                      formData.accountStatus === 'Active'
+                        ? '#34D399'
+                        : '#EF4444',
+                  }} // Green for Active, Red for Inactive
+                >
+                  {formData.accountStatus === 'Active' ? (
+                    <span className="text-green-500">Active</span>
+                  ) : (
+                    <span className="text-red-500">Inactive</span>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="mt-4">
+          {/* <div className="mt-4">
             <label className="text-sm font-medium text-gray-700 mb-1 block">Professional Bio</label>
             <textarea name="professionalBio" value={formData.professionalBio} onChange={handleChange} rows="4" placeholder="Tell us about your real estate experience and specialties..." className="w-full p-3 border border-gray-300 rounded-lg resize-none" />
             <p className="text-xs text-gray-500 mt-1">This bio will be visible to clients and team members.</p>
-          </div>
+          </div> */}
         </div>
 
         <div className="flex justify-end space-x-3 p-6 border-t border-gray-200">
-          <button onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg font-medium hover:bg-gray-200 transition">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg font-medium hover:bg-gray-200 transition"
+          >
             Cancel
           </button>
-          <button onClick={handleSave} className="px-4 py-2 text-white bg-blue-600 rounded-lg font-medium hover:bg-blue-700 transition">
+          <button
+            onClick={handleSave}
+            className="px-4 py-2 text-white bg-blue-600 rounded-lg font-medium hover:bg-blue-700 transition"
+          >
             Save Changes
           </button>
         </div>
@@ -245,9 +302,9 @@ const EditProfileModal = ({ isOpen, onClose, currentInfo = {}, onSave }) => {
 
 const SecurityTab = ({ onPasswordChange }) => {
   const [passwordForm, setPasswordForm] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmNewPassword: "",
+    currentPassword: '',
+    newPassword: '',
+    confirmNewPassword: '',
   });
 
   const handleChange = (e) => {
@@ -257,16 +314,20 @@ const SecurityTab = ({ onPasswordChange }) => {
 
   const handleUpdatePassword = () => {
     if (passwordForm.newPassword !== passwordForm.confirmNewPassword) {
-      toast.error("New password and confirmation do not match.");
+      toast.error('New password and confirmation do not match.');
       return;
     }
     if (!passwordForm.currentPassword || !passwordForm.newPassword) {
-      toast.error("Please fill current and new password.");
+      toast.error('Please fill current and new password.');
       return;
     }
     onPasswordChange(passwordForm)
       .then(() => {
-        setPasswordForm({ currentPassword: "", newPassword: "", confirmNewPassword: "" });
+        setPasswordForm({
+          currentPassword: '',
+          newPassword: '',
+          confirmNewPassword: '',
+        });
       })
       .catch(() => {
         /* errors handled upstream */
@@ -277,7 +338,14 @@ const SecurityTab = ({ onPasswordChange }) => {
     <div className="mb-4">
       <p className="text-sm font-medium text-gray-700 mb-1">{label}</p>
       <div className="relative">
-        <input type="password" name={name} value={value} onChange={handleChange} placeholder={placeholder} className="w-full py-3 pl-12 pr-4 text-base border border-gray-300 rounded-lg focus:ring-gray-900 focus:border-gray-900 transition duration-150" />
+        <input
+          type="password"
+          name={name}
+          value={value}
+          onChange={handleChange}
+          placeholder={placeholder}
+          className="w-full py-3 pl-12 pr-4 text-base border border-gray-300 rounded-lg focus:ring-gray-900 focus:border-gray-900 transition duration-150"
+        />
         <Lock className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 transform -translate-y-1/2" />
       </div>
     </div>
@@ -285,11 +353,31 @@ const SecurityTab = ({ onPasswordChange }) => {
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
-      <h3 className="text-xl font-semibold text-gray-900 mb-4">Change Password</h3>
-      <PasswordInput label="Current Password" name="currentPassword" value={passwordForm.currentPassword} placeholder="Enter current password" />
-      <PasswordInput label="New Password" name="newPassword" value={passwordForm.newPassword} placeholder="Enter new password" />
-      <PasswordInput label="Confirm New Password" name="confirmNewPassword" value={passwordForm.confirmNewPassword} placeholder="Confirm new password" />
-      <button onClick={handleUpdatePassword} className="mt-6 w-full md:w-auto px-6 py-3 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition duration-150 shadow-md shadow-gray-400/50">
+      <h3 className="text-xl font-semibold text-gray-900 mb-4">
+        Change Password
+      </h3>
+      <PasswordInput
+        label="Current Password"
+        name="currentPassword"
+        value={passwordForm.currentPassword}
+        placeholder="Enter current password"
+      />
+      <PasswordInput
+        label="New Password"
+        name="newPassword"
+        value={passwordForm.newPassword}
+        placeholder="Enter new password"
+      />
+      <PasswordInput
+        label="Confirm New Password"
+        name="confirmNewPassword"
+        value={passwordForm.confirmNewPassword}
+        placeholder="Confirm new password"
+      />
+      <button
+        onClick={handleUpdatePassword}
+        className="mt-6 w-full md:w-auto px-6 py-3 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition duration-150 shadow-md shadow-gray-400/50"
+      >
         Update Password
       </button>
     </div>
@@ -297,7 +385,7 @@ const SecurityTab = ({ onPasswordChange }) => {
 };
 
 const Profile = () => {
-  const [activeTab, setActiveTab] = useState("Personal Information");
+  const [activeTab, setActiveTab] = useState('Personal Information');
   const [profileData, setProfileData] = useState(initialProfileData);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loadingUser, setLoadingUser] = useState(true);
@@ -305,7 +393,7 @@ const Profile = () => {
   // fetch current user
   useEffect(() => {
     let mounted = true;
-    const token = localStorage.getItem("auth_access");
+    const token = localStorage.getItem('auth_access');
     if (!token) {
       setLoadingUser(false);
       return;
@@ -314,33 +402,47 @@ const Profile = () => {
     (async () => {
       try {
         const res = await fetch(`${API_BASE}/auth/user/`, {
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
         });
         if (!res.ok) {
-          throw new Error("Failed to load current user");
+          throw new Error('Failed to load current user');
         }
         const u = await res.json();
         if (!mounted) return;
         // map to profileData shape
         setProfileData((prev) => ({
           ...prev,
-          initials: (u.name || "").split(" ").map((n) => n[0] || "").join("").slice(0, 3).toUpperCase() || prev.initials,
+          initials:
+            (u.name || '')
+              .split(' ')
+              .map((n) => n[0] || '')
+              .join('')
+              .slice(0, 3)
+              .toUpperCase() || prev.initials,
           name: u.name || prev.name,
           email: u.email || prev.email,
           role: u.role || prev.role,
           date_joined: u.date_joined || prev.date_joined,
-          memberSince: u.date_joined ? new Date(u.date_joined).toLocaleString("en-GB", { month: "short", year: "numeric" }) : prev.memberSince,
+          memberSince: u.date_joined
+            ? new Date(u.date_joined).toLocaleString('en-GB', {
+                month: 'short',
+                year: 'numeric',
+              })
+            : prev.memberSince,
           personalInfo: {
             fullName: u.name || prev.personalInfo.fullName,
             emailAddress: u.email || prev.personalInfo.emailAddress,
             phoneNumber: u.phone || prev.personalInfo.phoneNumber,
-            accountStatus: u.is_active ? "Active" : "Inactive",
+            accountStatus: u.is_active ? 'Active' : 'Inactive',
             professionalBio: prev.personalInfo.professionalBio,
           },
         }));
       } catch (err) {
         // fallback to static
-        console.warn("Could not fetch current user:", err);
+        console.warn('Could not fetch current user:', err);
       } finally {
         if (mounted) setLoadingUser(false);
       }
@@ -351,11 +453,11 @@ const Profile = () => {
     };
   }, []);
 
-  const tabs = ["Personal Information", "Security"];
+  const tabs = ['Personal Information', 'Security'];
 
   // Save profile to server (PATCH /auth/user/)
   const handleSaveProfile = async (updatedInfo) => {
-    const token = localStorage.getItem("auth_access");
+    const token = localStorage.getItem('auth_access');
     // update UI optimistically
     setProfileData((p) => ({
       ...p,
@@ -363,56 +465,66 @@ const Profile = () => {
       name: updatedInfo.fullName,
       email: updatedInfo.emailAddress,
       initials: (updatedInfo.fullName || p.personalInfo.fullName)
-        .split(" ")
-        .map((n) => n[0] || "")
-        .join("")
+        .split(' ')
+        .map((n) => n[0] || '')
+        .join('')
         .slice(0, 3)
         .toUpperCase(),
     }));
 
     // try persist to backend
     if (!token) {
-      toast.success("Profile updated locally (not authenticated).");
+      toast.success('Profile updated locally (not authenticated).');
       return;
     }
     try {
       const res = await fetch(`${API_BASE}/auth/user/`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           name: updatedInfo.fullName,
           email: updatedInfo.emailAddress,
           phone: updatedInfo.phoneNumber,
-          is_active: updatedInfo.accountStatus === "Active",
+          is_active: updatedInfo.accountStatus === 'Active',
         }),
       });
 
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         // show warning but keep UI updated
-        toast.success("Profile updated locally.");
-        Swal.fire({ icon: "warning", title: "Saved locally", text: data?.detail || "Server did not accept update." });
+        toast.success('Profile updated locally.');
+        Swal.fire({
+          icon: 'warning',
+          title: 'Saved locally',
+          text: data?.detail || 'Server did not accept update.',
+        });
         return;
       }
       await res.json().catch(() => null);
-      toast.success("Profile updated successfully.");
+      toast.success('Profile updated successfully.');
     } catch (err) {
-      console.error("Profile update failed:", err);
-      toast.error("Profile updated locally. Server request failed.");
+      console.error('Profile update failed:', err);
+      toast.error('Profile updated locally. Server request failed.');
     }
   };
 
   // Change password
   const handlePasswordChange = async ({ currentPassword, newPassword }) => {
-    const token = localStorage.getItem("auth_access");
+    const token = localStorage.getItem('auth_access');
     if (!token) {
-      toast.error("Not authenticated.");
+      toast.error('Not authenticated.');
       return Promise.reject();
     }
     try {
       const res = await fetch(`${API_BASE}/auth/password/change/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           old_password: currentPassword,
           new_password1: newPassword,
@@ -421,15 +533,16 @@ const Profile = () => {
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        const msg = data?.detail || JSON.stringify(data) || "Password change failed";
+        const msg =
+          data?.detail || JSON.stringify(data) || 'Password change failed';
         toast.error(msg);
         return Promise.reject(msg);
       }
-      toast.success("Password changed successfully.");
+      toast.success('Password changed successfully.');
       return Promise.resolve();
     } catch (err) {
-      console.error("Password change error:", err);
-      toast.error("Password change failed.");
+      console.error('Password change error:', err);
+      toast.error('Password change failed.');
       return Promise.reject(err);
     }
   };
@@ -439,7 +552,11 @@ const Profile = () => {
     try {
       if (!profileData.date_joined) return profileData.memberSince;
       const d = new Date(profileData.date_joined);
-      return d.toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+      return d.toLocaleString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
     } catch {
       return profileData.memberSince;
     }
@@ -451,7 +568,9 @@ const Profile = () => {
         {/* Header */}
         <header className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Profile</h1>
-          <p className="text-gray-600 text-sm">Manage your account settings and preferences</p>
+          <p className="text-gray-600 text-sm">
+            Manage your account settings and preferences
+          </p>
         </header>
 
         {/* Main Card */}
@@ -463,23 +582,35 @@ const Profile = () => {
               </div>
 
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">{profileData.name}</h2>
-                <p className="text-sm text-gray-600 mb-1">{profileData.email}</p>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {profileData.name}
+                </h2>
+                <p className="text-sm text-gray-600 mb-1">
+                  {profileData.email}
+                </p>
                 <div className="flex items-center space-x-2 text-xs">
-                  <span className="text-teal-600 font-medium">{profileData.role}</span>
+                  <span className="text-teal-600 font-medium">
+                    {profileData.role}
+                  </span>
                   <span className="text-gray-500">|</span>
-                  <span className="text-gray-500">Joined {formattedJoined}</span>
+                  <span className="text-gray-500">
+                    Joined {formattedJoined}
+                  </span>
                 </div>
               </div>
             </div>
 
             <div className="mt-4 md:mt-0 flex space-x-6 text-right">
               <div className="border-r pr-6">
-                <p className="text-2xl font-bold text-gray-900">{profileData.stats.totalProperties}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {profileData.stats.totalProperties}
+                </p>
                 <p className="text-sm text-gray-500">Properties</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{profileData.stats.totalDownloads}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {profileData.stats.totalDownloads}
+                </p>
                 <p className="text-sm text-gray-500">Downloads</p>
               </div>
             </div>
@@ -496,7 +627,11 @@ const Profile = () => {
         <div className="mb-6">
           <div className="inline-flex space-x-4 border-b border-gray-200">
             {tabs.map((tab) => (
-              <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 text-sm font-medium transition duration-150 ${activeTab === tab ? "border-b-2 border-gray-900 text-gray-900" : "text-gray-500 hover:text-gray-700"}`}>
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-4 py-2 text-sm font-medium transition duration-150 ${activeTab === tab ? 'border-b-2 border-gray-900 text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+              >
                 {tab}
               </button>
             ))}
@@ -504,14 +639,21 @@ const Profile = () => {
         </div>
 
         {/* Tab Content */}
-        {activeTab === "Personal Information" && (
+        {activeTab === 'Personal Information' && (
           <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
             <div className="flex justify-between items-center mb-6 border-b pb-4">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Personal Information</h3>
-                <p className="text-sm text-gray-500">Update your personal details and contact information</p>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Personal Information
+                </h3>
+                <p className="text-sm text-gray-500">
+                  Update your personal details and contact information
+                </p>
               </div>
-              <button onClick={() => setIsModalOpen(true)} className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-800 rounded-lg text-sm font-medium hover:bg-gray-200 transition">
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-800 rounded-lg text-sm font-medium hover:bg-gray-200 transition"
+              >
                 <Edit2 className="w-4 h-4" />
                 <span>Edit Profile</span>
               </button>
@@ -519,23 +661,49 @@ const Profile = () => {
 
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
-                <InfoField label="Full Name" value={profileData.personalInfo.fullName} icon={User} />
-                <InfoField label="Email Address" value={profileData.personalInfo.emailAddress} icon={Mail} />
-                <InfoField label="Phone Number" value={profileData.personalInfo.phoneNumber} icon={Phone} />
-                <InfoField label="Account Status" status={profileData.personalInfo.accountStatus} />
+                <InfoField
+                  label="Full Name"
+                  value={profileData.personalInfo.fullName}
+                  icon={User}
+                />
+                <InfoField
+                  label="Email Address"
+                  value={profileData.personalInfo.emailAddress}
+                  icon={Mail}
+                />
+                <InfoField
+                  label="Phone Number"
+                  value={profileData.personalInfo.phoneNumber}
+                  icon={Phone}
+                />
+                <InfoField
+                  label="Account Status"
+                  status={profileData.personalInfo.accountStatus}
+                />
               </div>
 
-              <div className="pt-4">
+              {/* <div className="pt-4">
                 <p className="text-sm font-semibold text-gray-900 mb-2">Professional Bio</p>
                 <InfoField isBio={true} value={profileData.personalInfo.professionalBio} />
-              </div>
+              </div> */}
             </div>
           </div>
         )}
 
-        {activeTab === "Security" && <SecurityTab onPasswordChange={async ({ currentPassword, newPassword }) => handlePasswordChange({ currentPassword, newPassword })} />}
+        {activeTab === 'Security' && (
+          <SecurityTab
+            onPasswordChange={async ({ currentPassword, newPassword }) =>
+              handlePasswordChange({ currentPassword, newPassword })
+            }
+          />
+        )}
 
-        <EditProfileModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} currentInfo={profileData.personalInfo} onSave={handleSaveProfile} />
+        <EditProfileModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          currentInfo={profileData.personalInfo}
+          onSave={handleSaveProfile}
+        />
       </div>
     </div>
   );
