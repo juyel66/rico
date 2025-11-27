@@ -57,6 +57,7 @@ import AdminResources from "./Component/Admin/AdminDashboard/AdminResources";
 import BookingManagement from "./Component/Admin/AdminDashboard/BookingManagement";
 import UserManagement from "./Component/Admin/AdminDashboard/UserManagement";
 import ErrorPage from "./pages/ErrorPage/ErrorPage";
+import AllContact from "./pages/Contact/AllContact";
 
 
 // --- Protected Route Wrapper ---
@@ -110,7 +111,7 @@ export const router = createBrowserRouter([
           { path: "admin-analytics", element: <Analytics /> },
           { path: "admin-activity-logs", element: <ActivityLogs /> },
           { path: "rentals/admin-create-property", element: <CreatePropertyRentals /> },
-          { path: "sales/admin-create-property", element: <CreatePropertiesSales /> },
+          { path: "sales/admin-create-property-sales", element: <CreatePropertiesSales /> },
           { path: "admin-manage-property", element: <ManageProperties /> },
           { path: "admin-Announcements", element: <AdminAnnouncements /> },
           { path: "admin-resources", element: <AdminResources /> },
@@ -118,6 +119,7 @@ export const router = createBrowserRouter([
           { path: "admin-user-management", element: <UserManagement /> },
             { path: "admin-faqs", element: <FAQs /> },
             { path: "admin-profile", element: <Profile /> },
+             {path: "admin-allContact", element: <AllContact />},
           
         ],
       },
@@ -135,6 +137,7 @@ export const router = createBrowserRouter([
           { path: "agent-profile", element: <Profile /> },
           { path: "agent-property-rentals-details/:id", element: <PropertiesRentalsDetails /> },
           { path: "agent-property-sales-details/:id", element: <PropertiesSalesDetails /> },
+         
         ],
       },
 

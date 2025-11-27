@@ -410,7 +410,7 @@ export default function AdminResources() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900 mb-1">Resources</h1>
             <p className="text-gray-600 text-sm">Access marketing materials, templates, images and PDFs</p>
-            <p className="text-xs text-gray-500 mt-1">API root: <span className="font-mono">{(API_BASE || '').replace(/\/api\/?$/, '')}</span></p>
+            {/* <p className="text-xs text-gray-500 mt-1">API root: <span className="font-mono">{(API_BASE || '').replace(/\/api\/?$/, '')}</span></p> */}
           </div>
 
           <div className="flex items-center gap-3">

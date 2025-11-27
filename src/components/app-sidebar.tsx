@@ -1,4 +1,5 @@
-import { NavLink, useNavigate } from "react-router-dom";
+// src/components/AppSidebar.tsx
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -9,7 +10,7 @@ import {
 import { LogOut } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
 import { logout } from "@/features/Auth/authSlice"; // adjust path if needed
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 
 /* -- static menus -- */
 const ADMIN = [
@@ -23,12 +24,11 @@ const ADMIN = [
   { title: "Activity Logs", url: "/dashboard/admin-activity-logs", img: "https://res.cloudinary.com/dqkczdjjs/image/upload/v1760835766/Icon_11_w8rapr.png" },
   { title: "User Management", url: "/dashboard/admin-user-management", img: "https://res.cloudinary.com/dqkczdjjs/image/upload/v1762893337/Icon_2_yt5edq.png" },
   { title: "Booking Management", url: "/dashboard/admin-booking-management", img: "https://res.cloudinary.com/dqkczdjjs/image/upload/v1762893411/Icon_3_qzhh6y.png" },
+  { title: "All Contact", url: "/dashboard/admin-allContact", img: "https://res.cloudinary.com/dqkczdjjs/image/upload/v1762893411/Icon_3_qzhh6y.png" },
   { title: "Resources", url: "/dashboard/admin-resources", img: "https://res.cloudinary.com/dqkczdjjs/image/upload/v1760835779/Icon_9_v2svx7.png" },
   { title: "FAQs", url: "/dashboard/admin-faqs", img: "https://res.cloudinary.com/dqkczdjjs/image/upload/v1760836607/Icon_19_wiysfq.png" },
   { title: "Profile", url: "/dashboard/admin-profile", img: "https://res.cloudinary.com/dqkczdjjs/image/upload/v1760836746/Icon_20_hv1hl4.png" },
 ];
-
-
 
 const AGENT = [
   { title: "Properties-Rentals", url: "/dashboard/agent-properties-rentals", img: "https://res.cloudinary.com/dqkczdjjs/image/upload/v1760835665/Icon_5_syy9ka.png" },
@@ -43,10 +43,11 @@ const AGENT = [
 const AppSidebar = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // safe selector: may be null while loading
-  const currentUser = useSelector((state) => state?.auth?.user);
-  const isAuthenticated = useSelector((state) => Boolean(state?.auth?.access && state?.auth?.user));
+  const currentUser = useSelector((state: any) => state?.auth?.user);
+  const isAuthenticated = useSelector((state: any) => Boolean(state?.auth?.access && state?.auth?.user));
 
   // Normalize role string
   const role = (currentUser?.role || "").toString().toLowerCase();
@@ -63,15 +64,56 @@ const AppSidebar = () => {
       // swallow; logout thunk already handles clearing tokens
       console.error("Logout failed", err);
     } finally {
-      navigate("/login");
+      navigate("/login", { replace: true });
     }
   }, [dispatch, navigate]);
+
+  // --- Role enforcement: if user visits a protected area they don't belong to,
+  // force logout and redirect to /login
+  useEffect(() => {
+    if (!location || !location.pathname) return;
+
+    const path = location.pathname.toLowerCase();
+
+    // If someone tries to access admin routes but is not admin -> force logout
+    if (path.startsWith("/dashboard/admin") && role !== "admin") {
+      (async () => {
+        try {
+          await dispatch(logout());
+        } catch (e) {
+          console.error("Forced logout failed", e);
+        } finally {
+          navigate("/login", { replace: true });
+        }
+      })();
+      return;
+    }
+
+    // If someone tries to access agent routes but is not agent -> force logout
+    if (path.startsWith("/dashboard/agent") && role !== "agent") {
+      (async () => {
+        try {
+          await dispatch(logout());
+        } catch (e) {
+          console.error("Forced logout failed", e);
+        } finally {
+          navigate("/login", { replace: true });
+        }
+      })();
+      return;
+    }
+
+    // If not authenticated but on dashboard area -> redirect to login
+    if (!isAuthenticated && path.startsWith("/dashboard")) {
+      navigate("/login", { replace: true });
+    }
+  }, [location?.pathname, role, isAuthenticated, dispatch, navigate]);
 
   return (
     <Sidebar>
       <SidebarContent>
         {/* Header: show current user name + role */}
-        
+      
 
         <SidebarMenu>
           {/* ADMIN Section */}

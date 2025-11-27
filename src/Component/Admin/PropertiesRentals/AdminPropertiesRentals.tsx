@@ -1,4 +1,4 @@
-// src/features/Properties/AdminPropertiesRentals.tsx
+// src/features/Properties/AdminPropertiesSales.tsx
 import React, { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,9 +22,14 @@ import {
 } from "../../../features/Properties/PropertiesSlice";
 
 /* ---------- small inline toast ---------- */
-const ToastNotification: React.FC<{ message: string; type?: "success" | "error"; visible: boolean; }> = ({ message, type = "success", visible }) => {
+const ToastNotification: React.FC<{
+  message: string;
+  type?: "success" | "error";
+  visible: boolean;
+}> = ({ message, type = "success", visible }) => {
   if (!visible) return null;
-  const baseClass = "fixed bottom-4 right-4 p-4 rounded-lg shadow-xl text-white transition-opacity duration-300 z-50";
+  const baseClass =
+    "fixed bottom-4 right-4 p-4 rounded-lg shadow-xl text-white transition-opacity duration-300 z-50";
   const typeClass = type === "success" ? "bg-green-500" : "bg-red-500";
   const Icon = type === "success" ? CheckCircle : AlertTriangle;
   return (
@@ -46,6 +51,33 @@ function toArray(payload: any): any[] {
 
 const availableStatuses = ["All Status", "published", "pending", "draft"];
 
+/* ---------- helper to decide if property is a "rental" listing ---------- */
+function isRentalProperty(p: any): boolean {
+  if (!p) return false;
+  const val =
+    (p.listing_type ?? p.listingType ?? p.property_type ?? p.type ?? p.rateType ?? p.rate_type) ??
+    "";
+  if (val === null || val === undefined) return false;
+  const normalized = String(val).toLowerCase();
+  // treat common variants containing "rent" or "rental" as rental
+  if (normalized.includes("rent")) return true;
+  if (normalized.includes("rental")) return true;
+  // fallback: do not include if unknown
+  return false;
+}
+
+/* ---------- small helper: truncate description to 20 chars with ellipsis ---------- */
+const truncate = (maybeStr: any, maxLen = 20) => {
+  const s =
+    typeof maybeStr === "string"
+      ? maybeStr
+      : maybeStr === null || maybeStr === undefined
+      ? ""
+      : String(maybeStr);
+  if (s.length <= maxLen) return s;
+  return s.slice(0, maxLen) + "...";
+};
+
 const AdminPropertiesRentals: React.FC = () => {
   const dispatch: any = useDispatch();
   const slice: any = useSelector((s: any) => s.propertyBooking);
@@ -55,7 +87,11 @@ const AdminPropertiesRentals: React.FC = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
-  const [toast, setToast] = useState({ message: "", type: "" as "success" | "error" | "", visible: false });
+  const [toast, setToast] = useState({
+    message: "",
+    type: "" as "success" | "error" | "",
+    visible: false,
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
@@ -67,12 +103,14 @@ const AdminPropertiesRentals: React.FC = () => {
   // normalized array from redux
   const reduxArray = useMemo(() => toArray(rawProperties), [rawProperties]);
 
-  // local copy for instant UI updates (uses spread operator for updates)
+  // local copy for instant UI updates (only rental items)
   const [localProperties, setLocalProperties] = useState<any[]>([]);
 
-  // sync localProperties whenever redux array changes
+  // sync localProperties whenever redux array changes, include ONLY rental listings
   useEffect(() => {
-    setLocalProperties(reduxArray.map((p: any) => ({ ...p })));
+    const rentalOnly = reduxArray.filter((p: any) => isRentalProperty(p));
+    // copy objects so local edits won't mutate redux objects directly
+    setLocalProperties(rentalOnly.map((p: any) => ({ ...p })));
   }, [reduxArray]);
 
   useEffect(() => {
@@ -127,7 +165,7 @@ const AdminPropertiesRentals: React.FC = () => {
           // @ts-ignore unwrap
           await dispatch(deleteProperty(id)).unwrap();
 
-          // remove locally using filter (spread isn't needed to remove but the rest items are preserved as new objects)
+          // remove locally
           setLocalProperties((prev) => prev.filter((x) => Number(x.id) !== Number(id)));
 
           showToast(`Property ${id} deleted successfully!`, "success");
@@ -157,7 +195,6 @@ const AdminPropertiesRentals: React.FC = () => {
       title: editItem.title,
       price: editItem.price,
       status: editItem.status,
-      // adapt backend field names as needed (e.g., city/address)
       location: editItem.location ?? editItem.city,
     };
 
@@ -227,8 +264,8 @@ const AdminPropertiesRentals: React.FC = () => {
 
       <div className="flex justify-between items-center mt-5">
         <div>
-          <h1 className="text-3xl font-semibold">Properties-Rentals (Rent only)</h1>
-          <p className="text-gray-500">Your portfolio, beautifully organized.</p>
+          <h1 className="text-3xl font-semibold">Properties - Rentals (Rent only)</h1>
+          <p className="text-gray-500">Showing rental properties only.</p>
         </div>
         <Link
           to="/dashboard/rentals/admin-create-property"
@@ -322,7 +359,7 @@ const AdminPropertiesRentals: React.FC = () => {
                         <div className="text-sm font-medium">
                           {item.title ?? item.name ?? `Untitled #${item.id}`}
                         </div>
-                        <div className="text-xs text-gray-500">{item.details ?? item.description.slice(0, 20)}</div>
+                        <div className="text-xs text-gray-500">{truncate(item.details ?? item.description ?? "", 20)}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
@@ -332,7 +369,6 @@ const AdminPropertiesRentals: React.FC = () => {
                       {item.price_display ?? item.price ?? item.total_price ?? "-"}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
-                      {/* Show the listing type explicitly (rent/sale) */}
                       {String(item.listing_type ?? item.rateType ?? item.property_type ?? item.type ?? "-")}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
@@ -378,7 +414,7 @@ const AdminPropertiesRentals: React.FC = () => {
                 {filteredProjects.length === 0 && (
                   <tr>
                     <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
-                      {loading ? "Loading..." : error ? `Failed to load: ${String(error)}` : "No projects found matching your criteria."}
+                      {loading ? "Loading..." : error ? `Failed to load: ${String(error)}` : "No rental properties found."}
                     </td>
                   </tr>
                 )}

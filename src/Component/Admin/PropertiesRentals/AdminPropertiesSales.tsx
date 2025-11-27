@@ -63,6 +63,18 @@ function isSaleProperty(p: any): boolean {
   return ["sale", "sell", "for sale", "sales"].includes(normalized);
 }
 
+/* ---------- small helper: truncate description to 20 chars with ellipsis ---------- */
+const truncate = (maybeStr: any, maxLen = 20) => {
+  const s =
+    typeof maybeStr === "string"
+      ? maybeStr
+      : maybeStr === null || maybeStr === undefined
+      ? ""
+      : String(maybeStr);
+  if (s.length <= maxLen) return s;
+  return s.slice(0, maxLen) + "...";
+};
+
 const AdminPropertiesSales: React.FC = () => {
   const dispatch: any = useDispatch();
   const slice: any = useSelector((s: any) => s.propertyBooking);
@@ -253,7 +265,7 @@ const AdminPropertiesSales: React.FC = () => {
           <p className="text-gray-500">Your sale properties, beautifully organized.</p>
         </div>
         <Link
-          to="/dashboard/rentals/admin-create-property"
+          to="/dashboard/sales/admin-create-property-sales"
           className="bg-[#009689] text-white flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm transition-colors duration-150"
         >
           <LucideTableProperties className="h-5 w-5" /> Create Property
@@ -344,7 +356,9 @@ const AdminPropertiesSales: React.FC = () => {
                         <div className="text-sm font-medium">
                           {item.title ?? item.name ?? `Untitled #${item.id}`}
                         </div>
-                        <div className="text-xs text-gray-500">{item.details ?? item.description}</div>
+                        <div className="text-xs text-gray-500">
+                          {truncate(item.details ?? item.description ?? "", 20)}
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">

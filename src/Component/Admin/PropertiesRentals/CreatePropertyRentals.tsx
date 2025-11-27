@@ -391,7 +391,7 @@ const CreatePropertyRentals = () => {
             <select name="property_type" {...register('property_type')} className="w-full border rounded-lg p-3 bg-gray-50">
               <option value="">Select type</option>
               <option value="rentals">Rentals</option>
-              <option value="sales">Sales</option>
+             
             </select>
           </div>
 

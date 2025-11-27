@@ -377,8 +377,6 @@
 
 
 
-
-
 import React, { useState } from "react";
 import jsPDF from "jspdf";
 
@@ -417,6 +415,23 @@ const StaffItem = ({ name, details }) => (
     </div>
   </li>
 );
+
+// Simple helper to load images with crossOrigin and fallback
+const loadImageWithFallback = (src) =>
+  new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "Anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => {
+      // try fallback
+      const f = new Image();
+      f.crossOrigin = "Anonymous";
+      f.onload = () => resolve(f);
+      f.onerror = () => resolve(null);
+      f.src = LOCAL_FALLBACK;
+    };
+    img.src = src || LOCAL_FALLBACK;
+  });
 
 // --------- MAIN COMPONENT ----------
 const ImageGallerySection = ({ villa }) => {
@@ -522,52 +537,141 @@ const ImageGallerySection = ({ villa }) => {
   const [showAll, setShowAll] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
 
-  // -------- PDF Export --------
+  // -------- PDF Export (UPDATED to 3x3 per page with design)
   const handleDownloadPDF = async () => {
     try {
-      const pdf = new jsPDF("p", "mm", "a4");
+      const pdf = new jsPDF("p", "mm", "a4"); // portrait A4
+      const pageWidth = pdf.internal.pageSize.getWidth(); // 210
+      const pageHeight = pdf.internal.pageSize.getHeight(); // 297
+      const margin = 12; // mm
+      const gap = 6; // mm between images
+      const cols = 3;
+      const rows = 3;
+      const perPage = cols * rows;
 
-      const imagesToUse = media_images.slice(0, 6);
-      const imgWidth = 90;
-      const imgHeight = 65;
-      let x = 10,
-        y = 25;
+      // Compute image size: available width = pageWidth - 2*margin - (cols-1)*gap
+      const availableWidth = pageWidth - margin * 2 - gap * (cols - 1);
+      const imgW = Number((availableWidth / cols).toFixed(2));
+      const imgH = imgW; // square presentation for consistency
 
-      pdf.setFontSize(22);
-      pdf.text("Gallery Images", 105, 15, { align: "center" });
+      // Header Y start
+      const headerY = 18;
+      const yStart = headerY + 10; // after header
+      const captionHeight = 6;
 
-      for (let i = 0; i < imagesToUse.length; i++) {
-        const imgObj = imagesToUse[i];
-        const img = new Image();
-        img.src = imgObj.url;
-        await new Promise((res) => (img.onload = res));
+      // Build list of image URLs (fall back to placeholder)
+      const imgUrls = media_images.map((m) => m.url || LOCAL_FALLBACK);
 
-        const canvas = document.createElement("canvas");
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0);
-        const imgData = canvas.toDataURL("image/jpeg", 1);
-
-        pdf.addImage(imgData, "JPEG", x, y, imgWidth, imgHeight);
-
-        if (i % 2 === 0) x += imgWidth + 10;
-        else {
-          x = 10;
-          y += imgHeight + 15;
-        }
+      if (imgUrls.length === 0) {
+        // If there are no media images, include a single fallback image
+        imgUrls.push(LOCAL_FALLBACK);
       }
 
-      pdf.save("EV_Brochure.pdf");
+      // helper to draw header on the current page
+      const drawHeader = (pageIndex, totalPages) => {
+        pdf.setFontSize(18);
+        pdf.setTextColor(20, 40, 40);
+        const title = villaName || "Property Gallery";
+        pdf.text(title, pageWidth / 2, headerY, { align: "center" });
+        if (villa.price) {
+          pdf.setFontSize(11);
+          const priceText = typeof villa.price === "number" ? `Price: US$ ${villa.price.toLocaleString()}` : `Price: ${villa.price}`;
+          pdf.text(priceText, pageWidth / 2, headerY + 6, { align: "center" });
+        }
+        // small divider
+        pdf.setDrawColor(200);
+        pdf.setLineWidth(0.4);
+        pdf.line(margin, headerY + 8, pageWidth - margin, headerY + 8);
+      };
+
+      // preload all images (but to avoid memory hog, load per page chunk)
+      const totalPages = Math.ceil(imgUrls.length / perPage);
+
+      let imgIndex = 0;
+      for (let p = 0; p < totalPages; p++) {
+        // draw header
+        drawHeader(p + 1, totalPages);
+
+        // for each cell in the page (3x3)
+        for (let i = 0; i < perPage; i++) {
+          const currentIndex = p * perPage + i;
+          if (currentIndex >= imgUrls.length) break;
+
+          const col = i % cols;
+          const row = Math.floor(i / cols);
+
+          const x = margin + col * (imgW + gap);
+          const y = yStart + row * (imgH + gap);
+
+          // load image (with fallback)
+          const imgEl = await loadImageWithFallback(imgUrls[currentIndex]);
+          if (!imgEl) {
+            // if nothing loaded, skip drawing this image
+            continue;
+          }
+
+          // draw into canvas to get a data URL
+          const canvas = document.createElement("canvas");
+          const cw = imgEl.naturalWidth || imgEl.width || 800;
+          const ch = imgEl.naturalHeight || imgEl.height || 600;
+
+          // To preserve aspect and fill box without distortion, compute scale
+          // We'll fit inside imgW x imgH while preserving aspect ratio
+          // Canvas size should be image's native dims to preserve quality
+          canvas.width = cw;
+          canvas.height = ch;
+          const ctx = canvas.getContext("2d");
+          // draw the image centered and cover the canvas area proportionally
+          // We'll draw full image to canvas, then let jsPDF scale to imgW/imgH
+          ctx.drawImage(imgEl, 0, 0, cw, ch);
+
+          // convert to JPEG
+          let imgData;
+          try {
+            imgData = canvas.toDataURL("image/jpeg", 0.9);
+          } catch (err) {
+            // canvas may be tainted; try fallback URL directly
+            imgData = LOCAL_FALLBACK;
+          }
+
+          // Add the image (jsPDF positions and scales in mm)
+          pdf.addImage(imgData, "JPEG", x, y, imgW, imgH);
+
+          // caption: small index label centered under the image
+          pdf.setFontSize(9);
+          pdf.setTextColor(90);
+          const captionText = `Image ${currentIndex + 1}`;
+          const captionX = x + imgW / 2;
+          const captionY = y + imgH + 4;
+          pdf.text(captionText, captionX, captionY, { align: "center" });
+        }
+
+        // page number footer
+        pdf.setFontSize(9);
+        pdf.setTextColor(120);
+        const footerText = `Page ${p + 1} of ${totalPages}`;
+        pdf.text(footerText, pageWidth / 2, pageHeight - 10, { align: "center" });
+
+        if (p < totalPages - 1) pdf.addPage();
+      }
+
+      // finalize
+      pdf.save(`${(villaName || "EV_Brochure").replace(/\s+/g, "_")}.pdf`);
     } catch (err) {
       console.error("PDF error:", err);
+      // also attempt a simple fallback: create PDF with only the first image if something went wrong
+      try {
+        const fallbackPdf = new jsPDF("p", "mm", "a4");
+        fallbackPdf.setFontSize(18);
+        fallbackPdf.text("Gallery Export Failed - See console", 20, 30);
+        fallbackPdf.save("EV_Brochure_Fallback.pdf");
+      } catch (e) {
+        console.error("Fallback PDF also failed:", e);
+      }
     }
   };
 
-
-
   const villaId = villa.id;
-
 
   // -------- UI Rendering --------
   return (
@@ -685,66 +789,55 @@ const ImageGallerySection = ({ villa }) => {
             <BedRoomsSliders bedrooms_images={bedrooms_images} />
           </div>
 
+          {isRentType && (
+            <>
+              <h3 className="text-2xl font-bold mt-10 mb-4">Concierge Service</h3>
 
-            {isRentType && (
-        <>
+              {/* Existing concierge items (if any) */}
+              <ul>
+                {concierge_service.map((item, i) => (
+                  <AmenityItem key={i} name={item} />
+                ))}
 
+                {/* --- STATIC LINES REQUESTED --- */}
+                <li className="flex items-start text-gray-700 text-sm mb-2 mt-4">
+                  <img
+                    src="https://res.cloudinary.com/dqkczdjjs/image/upload/v1760828543/hd_svg_logo_2_hw4vsa.png"
+                    alt="icon"
+                    className="w-4 h-4 mr-2 mt-0.5"
+                  />
+                  <span>
+                    Our concierge team offers a bunch of luxury services, making sure
+                    you enjoy every moment.
+                  </span>
+                </li>
 
-                  <h3 className="text-2xl font-bold mt-10 mb-4">Concierge Service</h3>
+                <li className="flex items-start text-gray-700 text-sm mb-2">
+                  <img
+                    src="https://res.cloudinary.com/dqkczdjjs/image/upload/v1760828543/hd_svg_logo_2_hw4vsa.png"
+                    alt="icon"
+                    className="w-4 h-4 mr-2 mt-0.5"
+                  />
+                  <span>
+                    We handle your Arrival, Transfers, Car Rentals, and Chauffeur
+                    Services.
+                  </span>
+                </li>
 
-          {/* Existing concierge items (if any) */}
-          <ul>
-            {concierge_service.map((item, i) => (
-              <AmenityItem key={i} name={item} />
-            ))}
-
-            {/* --- STATIC LINES REQUESTED --- */}
-            <li className="flex items-start text-gray-700 text-sm mb-2 mt-4">
-              <img
-                src="https://res.cloudinary.com/dqkczdjjs/image/upload/v1760828543/hd_svg_logo_2_hw4vsa.png"
-                alt="icon"
-                className="w-4 h-4 mr-2 mt-0.5"
-              />
-              <span>
-                Our concierge team offers a bunch of luxury services, making sure
-                you enjoy every moment.
-              </span>
-            </li>
-
-            <li className="flex items-start text-gray-700 text-sm mb-2">
-              <img
-                src="https://res.cloudinary.com/dqkczdjjs/image/upload/v1760828543/hd_svg_logo_2_hw4vsa.png"
-                alt="icon"
-                className="w-4 h-4 mr-2 mt-0.5"
-              />
-              <span>
-                We handle your Arrival, Transfers, Car Rentals, and Chauffeur
-                Services.
-              </span>
-            </li>
-
-            <li className="flex items-start text-gray-700 text-sm mb-2">
-              <img
-                src="https://res.cloudinary.com/dqkczdjjs/image/upload/v1760828543/hd_svg_logo_2_hw4vsa.png"
-                alt="icon"
-                className="w-4 h-4 mr-2 mt-0.5"
-              />
-              <span>
-                We can stock your villa, help with menus, provide household
-                support, and spa services.
-              </span>
-            </li>
-          </ul>
-
-
-         
-        </>
-      )}
-
-
-
-
-
+                <li className="flex items-start text-gray-700 text-sm mb-2">
+                  <img
+                    src="https://res.cloudinary.com/dqkczdjjs/image/upload/v1760828543/hd_svg_logo_2_hw4vsa.png"
+                    alt="icon"
+                    className="w-4 h-4 mr-2 mt-0.5"
+                  />
+                  <span>
+                    We can stock your villa, help with menus, provide household
+                    support, and spa services.
+                  </span>
+                </li>
+              </ul>
+            </>
+          )}
 
           <h3 className="text-2xl font-bold mt-10 mb-4">Security Deposit</h3>
 
@@ -763,21 +856,21 @@ const ImageGallerySection = ({ villa }) => {
       {isRentType && (
         <>
           <RatesBookingInformation booking_rate_start={booking_rate_start} price={villa.price} />
-        <div className="">
+          <div className="">
             <Calendar villaId={villaId} />
-        </div>
+          </div>
         </>
       )}
 
-    <div className="mt-15 mb-20">
+      <div className="mt-15 mb-20">
         <Locations
-        lat={location.lat}
-        lng={location.lng}
-        text={location.address}
-        locationObj={location}
-        villaName={villaName}
-      />
-    </div>
+          lat={location.lat}
+          lng={location.lng}
+          text={location.address}
+          locationObj={location}
+          villaName={villaName}
+        />
+      </div>
 
       <AddReviewForm />
 
@@ -798,4 +891,3 @@ const ImageGallerySection = ({ villa }) => {
 };
 
 export default ImageGallerySection;
-
