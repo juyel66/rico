@@ -155,7 +155,7 @@ const Navbar = () => {
         About
       </NavLink>
 
-      <NavLink
+      {/* <NavLink
         onClick={handleLinkClick}
         className={({ isActive }) =>
           `px-3 py-2 text-[15px] md:hidden font-semibold ${
@@ -167,7 +167,7 @@ const Navbar = () => {
         to="https://ricoholder-dashboard.netlify.app/admin-dashboard"
       >
         Dashboard
-      </NavLink>
+      </NavLink> */}
     </>
   );
 
@@ -203,6 +203,8 @@ const Navbar = () => {
           >
             Contact Us
           </Link>
+
+          
 
           {/* Keep the same design: show Logout if authenticated, otherwise Login */}
           {isAuthenticated ? (
