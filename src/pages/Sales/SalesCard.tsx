@@ -119,8 +119,8 @@ const PropertyCard: React.FC<{ property: Property }> = ({ property }) => {
           </p>
 
           <p className="text-[16px] sm:text-xl md:text-2xl text-emerald-700 font-bold mt-4">
-            From <span>USD${formattedPrice}</span>
-            {property.rateType || "/night"}
+            From <span>USD${formattedPrice}</span>/night
+            
           </p>
 
           {/* Amenities */}
