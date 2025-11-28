@@ -111,7 +111,7 @@
 import React from "react";
 
 const FeaturedBadge = () => (
-  <div className="flex items-center w-1/3 px-3 py-1 bg-black/40 backdrop-blur-sm rounded-full text-white text-sm font-semibold border border-white/20 relative whitespace-nowrap transition-all duration-500 ease-in-out">
+  <div className="flex items-center lg:w-4/13 px-3 py-1 bg-black/40 backdrop-blur-sm rounded-full text-white text-sm font-semibold border border-white/20 relative whitespace-nowrap transition-all duration-500 ease-in-out">
     <img
       className="w-6 h-6"
       src="https://res.cloudinary.com/dqkczdjjs/image/upload/v1760898796/Icon_22_fqdcfj.png"
