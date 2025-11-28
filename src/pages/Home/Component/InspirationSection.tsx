@@ -3,7 +3,7 @@ const InspirationSection = () => {
 
   return (
     <div>
-      <h1 className="text-4xl lg:p-0 p-4 mt-5 font-semibold flex items-center justify-center text-start">
+      <h1 className="lg:text-4xl text-2xl lg:p-0 p-4 mt-5 font-semibold flex items-center justify-center text-start">
         Our origin. Our Inspiration. <br />
         -----A journey through the heart of barbados.
       </h1>
