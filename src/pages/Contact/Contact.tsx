@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import Swal from "sweetalert2";
+import Affiliates from "../Home/Component/Affiliates";
+
 
 // Define types for cleaner React code
 interface FormData {
@@ -81,16 +83,17 @@ const Contact = () => {
 
 
   return (
-    <section className="bg-white py-16 md:py-24 lg:py-28 container mx-auto px-4 sm:px-6 lg:px-8">
+<div>
+      <section className=" py-16 md:py-24 lg:py-28 container  mx-auto px-4 sm:px-6 lg:px-8 ">
       <div>
         {/* Main Heading */}
-        <h2 className="text-5xl font-extrabold text-gray-900 text-center mb-16">
+        <h2 className="text-4xl font-semibold text-gray-900 text-center mb-16 ">
           Let's Connect
         </h2>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* LEFT COLUMN: Contact Form */}
-          <div className="bg-white p-8 rounded-3xl shadow-lg border border-gray-200">
+          <div className=" p-8 rounded-3xl shadow-lg border border-gray-200">
             <p className="text-xl font-semibold text-gray-700 mb-6">
               Get In Touch
             </p>
@@ -206,7 +209,18 @@ const Contact = () => {
           </div>
         </div>
       </div>
+
+      <div className="mt-20">
+      
+     
+      </div>
     </section>
+
+
+    <div>
+      <Affiliates />
+    </div>
+</div>
   );
 };
 
