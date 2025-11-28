@@ -32,7 +32,7 @@ export const RootWraper = () => {
 
     const connect = () => {
       const token = getToken();
-      const wsUrl = `ws://10.10.13.60:8000/api/notifications/ws/notifications/?token=${token}`;
+      const wsUrl = `wss://api.eastmondvillas.com/api/notifications/ws/notifications/?token=${token}`;
       console.log("Attempting WS connect to:", wsUrl);
 
       ws.current = new WebSocket(wsUrl);
