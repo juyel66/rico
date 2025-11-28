@@ -90,10 +90,11 @@ const PropertyCard: React.FC<{ property: Property }> = ({ property }) => {
               </svg>
             </div>
 
-            <div className="absolute p-2 rounded-full bg-white top-50 -right-14">
+            <div className="absolute p-2 hidden lg:flex  rounded-full bg-white top-50 -right-14">
               <img
                 src="https://res.cloudinary.com/dqkczdjjs/image/upload/v1760828543/hd_svg_logo_2_hw4vsa.png"
                 alt=""
+                className=""
               />
             </div>
 
@@ -111,19 +112,19 @@ const PropertyCard: React.FC<{ property: Property }> = ({ property }) => {
             <h3 className="text-[16px] sm:text-2xl md:text-3xl font-extrabold text-gray-900">
               {property.title}
             </h3>
-            <p className="text-sm sm:text-base mt-2 text-gray-500 flex items-center font-medium">
+            <p className="text-sm  sm:text-base mt-2 text-gray-500 flex items-center font-medium">
               <img
                 src="https://res.cloudinary.com/dqkczdjjs/image/upload/v1760829803/Frame_6_keemxx.png"
                 alt="location"
-                className="w-5 h-5 mr-1"
+                className="w-5  h-5 mr-1"
               />{" "}
               {property.location}
             </p>
 
             <p className="text-[16px] sm:text-xl md:text-2xl text-emerald-700 font-bold mt-4">
-              From <span>USD${formattedPrice}</span>
-              {property.rateType || "/night"}
-            </p>
+            From <span>USD${formattedPrice}</span>/night
+            
+          </p>
 
             {/* Amenities */}
             <div className="flex flex-wrap items-center text-gray-500 text-xs sm:text-sm md:text-base font-medium mt-4 space-x-4">
