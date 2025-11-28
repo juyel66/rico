@@ -33,7 +33,7 @@ const SignatureCardContainer: React.FC<Props> = ({ items = [], loading = false, 
 
   return (
     <div id="signatureVilla" className="py-12 p-2">
-      <h2 className="lg:text-4xl mt-5 text-2xl font-extrabold text-gray-900 text-center mb-10">
+      <h2 className="lg:text-4xl text-3xl mt-5  font-extrabold text-gray-900 text-center mb-10">
         Our <span className="text-[#009689] italic">Signature</span> Villas
       </h2>
 
