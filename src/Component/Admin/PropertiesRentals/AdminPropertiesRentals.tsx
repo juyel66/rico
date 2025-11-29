@@ -498,7 +498,7 @@ const AdminPropertiesRentals: React.FC = () => {
                 className="w-full border rounded p-2"
               >
                 <option value="published">Published</option>
-                <option value="pending">Pending</option>
+                {/* <option value="pending">Pending</option> */}
                 <option value="draft">Draft</option>
               </select>
             </div>

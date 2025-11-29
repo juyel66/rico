@@ -126,7 +126,7 @@ const AllContact = () => {
                     <td className="py-3 px-4">
 <button
                         onClick={() => openModal(contact)}
-                        className="bg-blue-600 text-white text-sm px-3 py-1 rounded-md hover:bg-blue-700"
+                        className="bg-teal-600 text-white text-sm px-3 py-1 rounded-md hover:bg-teal-500"
 >
                         View
 </button>
@@ -141,7 +141,7 @@ const AllContact = () => {
  
       {/* Modal */}
       {showModal && selectedMessage && (
-<div className="fixed inset-0 flex items-center justify-center  bg-opacity-40 backdrop-blur-sm z-50">
+<div className="fixed inset-0 flex items-center justify-center  bg-opacity-40  z-50">
 <div className="bg-white w-11/12 sm:w-2/3 lg:w-1/3 rounded-xl shadow-xl p-6">
  
             <h2 className="text-xl font-semibold text-gray-800 mb-4">

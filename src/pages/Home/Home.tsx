@@ -137,6 +137,7 @@ import GuestSections from './Component/GuestSections';
 import EstateExperience from './Component/EstateExperience';
 import Contact from '../Contact/Contact';
 import Affiliates from './Component/Affiliates';
+import ContactHomePage from '../Contact/ContactHomePage';
 
 const API_BASE =
   import.meta.env.VITE_API_BASE || 'https://api.eastmondvillas.com/api';
@@ -259,7 +260,7 @@ const Home: React.FC = () => {
       </div>
 
       <div className="container mx-auto">
-        <Contact />
+       <ContactHomePage />
       </div>
 
       <Affiliates />

@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import Swal from "sweetalert2";
-import Affiliates from "../Home/Component/Affiliates";
 
 
 
@@ -12,7 +11,7 @@ interface FormData {
   message: string;
 }
 
-const Contact = () => {
+const ContactHomePage = () => {
   const [formData, setFormData] = useState<FormData>({
     name: "",
     email: "",
@@ -211,15 +210,11 @@ const Contact = () => {
         </div>
       </div>
 
-      <div className="mt-10">
+      <div className="mt-20">
       
      
       </div>
     </section>
-
-    <div>
-      <Affiliates />
-    </div>
 
 
   
@@ -227,4 +222,4 @@ const Contact = () => {
   );
 };
 
-export default Contact;
+export default ContactHomePage;

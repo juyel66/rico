@@ -211,14 +211,14 @@ const Navbar = () => {
             // Logout button — same style as original Login button (no design change)
             <button
               onClick={handleLogout}
-              className="px-6 py-2.5 bg-[#009689] text-white font-semibold rounded-lg shadow-md hover:bg-[#007c74] transition-all"
+              className="px-6 py-2.5 bg-[#009689] text-white font-semibold cursor-pointer rounded-lg shadow-md hover:bg-[#007c74] transition-all"
             >
               Logout
             </button>
           ) : (
             <Link
               to="/login"
-              className="px-6 py-2.5 bg-[#009689] text-white font-semibold rounded-lg shadow-md hover:bg-[#007c74] transition-all"
+              className="px-6 py-2.5 bg-[#009689] cursor-pointer text-white font-semibold rounded-lg shadow-md hover:bg-[#007c74] transition-all"
             >
               Login
             </Link>
@@ -256,7 +256,7 @@ const Navbar = () => {
                 handleLinkClick();
                 handleLogout();
               }}
-              className="w-full cursor-pointer bg-[#009689] text-center text-white px-4 py-2.5 rounded-lg font-semibold shadow-md hover:bg-[#007c74] transition-all"
+              className="w-full cursor-pointer bg-[#009689]  text-center text-white px-4 py-2.5 rounded-lg font-semibold shadow-md hover:bg-[#007c74] transition-all"
             >
               Logout
             </button>
@@ -264,7 +264,7 @@ const Navbar = () => {
             <Link
               onClick={handleLinkClick}
               to="/login"
-              className="w-full bg-[#009689] text-center text-white px-4 py-2.5 rounded-lg font-semibold shadow-md hover:bg-[#007c74] transition-all"
+              className="w-full bg-[#009689] cursor-pointer text-center text-white px-4 py-2.5 rounded-lg font-semibold shadow-md hover:bg-[#007c74] transition-all"
             >
               Login
             </Link>
