@@ -265,8 +265,10 @@
 
 
 
-// File: Calendars.tsx
+
+// src/features/Properties/Calendars.tsx
 import React, { useEffect, useMemo, useState } from "react";
+import Swal from "sweetalert2";
 
 /**
  * Calendars.tsx
@@ -352,6 +354,7 @@ export default function Calendars() {
   const [bookingsDetails, setBookingsDetails] = useState<Map<string, Map<number, BookingItem[]>>>(() => new Map());
 
   const [loading, setLoading] = useState(false);
+  // keep error internal (we will not render a red error box); use Swal for messages
   const [error, setError] = useState<string | null>(null);
   const [posting, setPosting] = useState<Record<string, boolean>>({});
 
@@ -379,6 +382,11 @@ export default function Calendars() {
     return {};
   }
 
+  /**
+   * Fetch monthly bookings.
+   * - Treat 204 / 404 as empty result (no properties for that month) — don't surface a page error.
+   * - For other non-OK responses or network errors, show a friendly Swal (toast) and keep page usable.
+   */
   async function fetchMonthly(month: number, year: number) {
     setLoading(true);
     setError(null);
@@ -387,7 +395,34 @@ export default function Calendars() {
     console.log("Fetching monthly bookings:", url);
     try {
       const resp = await fetch(url, { headers: { ...authHeaders() } });
-      if (!resp.ok) throw new Error(`API responded ${resp.status}`);
+
+      // treat empty responses as "no data" rather than page error
+      if (resp.status === 204 || resp.status === 404) {
+        setProperties([]);
+        setBookingsMap(new Map());
+        setBookingsDetails(new Map());
+        setLoading(false);
+        return;
+      }
+
+      if (!resp.ok) {
+        const text = await resp.text().catch(() => "");
+        Swal.fire({
+          icon: "warning",
+          title: "Could not load bookings",
+          text: `Server returned ${resp.status}${text ? ` — ${text}` : ""}`,
+          toast: true,
+          position: "top-center",
+          timer: 4000,
+          showConfirmButton: false,
+        });
+        setProperties([]);
+        setBookingsMap(new Map());
+        setBookingsDetails(new Map());
+        setLoading(false);
+        return;
+      }
+
       const data = (await resp.json()) as BookingResponse;
       console.log("Monthly bookings response:", data);
 
@@ -440,7 +475,16 @@ export default function Calendars() {
       setBookingsDetails(nextDetails);
     } catch (err: any) {
       console.error("fetchMonthly error:", err);
-      setError(err?.message ?? "Failed to fetch bookings");
+      // friendly toast, keep page usable
+      Swal.fire({
+        icon: "error",
+        title: "Network error",
+        text: err?.message ?? "Failed to fetch bookings",
+        toast: true,
+        position: "top-right",
+        timer: 5000,
+        showConfirmButton: false,
+      });
       setProperties([]);
       setBookingsMap(new Map());
       setBookingsDetails(new Map());
@@ -468,7 +512,7 @@ export default function Calendars() {
   async function handleBook(propertyId: number, day: number) {
     const key = mapKey(propertyId);
     if (isBooked(propertyId, day)) {
-      alert("Already booked.");
+      Swal.fire({ icon: "info", title: "Already booked", toast: true, position: "top-right", timer: 2000, showConfirmButton: false });
       return;
     }
 
@@ -505,7 +549,6 @@ export default function Calendars() {
           day,
           month: selectedMonth,
           year: selectedYear,
-          // agentId: ... (server should use auth), include if needed
         }),
       });
 
@@ -521,9 +564,6 @@ export default function Calendars() {
       const json = await resp.json();
       console.log("POST booking success:", json);
 
-      // If server returns updated bookedDays or bookings for the property, prefer that
-      // Attempt to update map from server response if present:
-      // - If server returns { bookedDays: [..] } or {bookings: [...] } handle accordingly
       if (Array.isArray(json.bookedDays)) {
         setBookingsMap((prev) => {
           const next = new Map(prev);
@@ -540,7 +580,6 @@ export default function Calendars() {
           return next;
         });
       }
-      // otherwise leave optimistic entry (server accepted)
     } catch (err: any) {
       // rollback: remove optimistic day and detail
       setBookingsMap((prev) => {
@@ -554,12 +593,11 @@ export default function Calendars() {
         const next = new Map(prev);
         const detail = new Map(next.get(key) ? Array.from(next.get(key)!.entries()) : []);
         const arr = detail.get(day) ?? [];
-        // remove placeholder (-1)
         detail.set(day, arr.filter((b) => b.booking_id !== -1));
         next.set(key, detail);
         return next;
       });
-      alert(err?.message ?? "Booking failed");
+      Swal.fire({ icon: "error", title: "Booking failed", text: err?.message ?? "Booking failed", toast: true, position: "top-right", timer: 4000, showConfirmButton: false });
     } finally {
       setPosting((p) => {
         const copy = { ...p };
@@ -600,7 +638,6 @@ export default function Calendars() {
       </div>
 
       {loading && <div className="text-sm text-gray-500 mb-3">Loading bookings…</div>}
-      {error && <div className="text-sm text-red-600 mb-3">Error: {error}</div>}
 
       <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-auto" style={{ maxHeight: "72vh" }}>
         <div className="p-4 space-y-3">
@@ -633,9 +670,8 @@ export default function Calendars() {
                           key={`${prop.id}-${d}`}
                           onClick={() => {
                             if (booked) {
-                              // show details popup
                               const lines = details.map((b) => `#${b.booking_id}: ${b.full_name} (${b.check_in} → ${b.check_out})`).join("\n");
-                              alert(lines || "Booked");
+                              Swal.fire({ title: "Booking details", html: `<pre style="text-align:left">${lines || "Booked"}</pre>` });
                               return;
                             }
                             handleBook(prop.id, d);

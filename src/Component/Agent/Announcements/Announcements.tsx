@@ -46,33 +46,6 @@ const getFileUrl = (filePath: string) => {
 };
 
 /* ----------------------
-  Local fallback data (kept for first render)
-------------------------*/
-const updateData = [
-  {
-    id: 1,
-    title: "New Marketing Guidelines Released",
-    date: "2025-10-11",
-    priority: "high",
-    details:
-      "We have updated our marketing guidelines to reflect the latest brand standards. Please review the attached document for detailed information on approved messaging, logo usage, and social media best practices.",
-    attachments: [{ name: "Marketing_Guidelines_2025.pdf", size: "2.3 MB", downloadUrl: "#" }],
-  },
-  {
-    id: 2,
-    title: "Q4 Financial Report Available",
-    date: "2025-10-15",
-    priority: "medium",
-    details:
-      "The official Q4 Financial Report is now available. This document contains key performance indicators, revenue analysis, and projections for the next quarter.",
-    attachments: [
-      { name: "Q4_Financial_Report.pdf", size: "5.1 MB", downloadUrl: "#" },
-      { name: "Q4_Summary_Deck.pptx", size: "1.2 MB", downloadUrl: "#" },
-    ],
-  },
-];
-
-/* ----------------------
   Priority badge
 ------------------------*/
 const PriorityBadge = ({ priority }: { priority: string }) => {
@@ -135,7 +108,6 @@ const AttachmentItem = ({ attachment }: { attachment: any }) => {
     } catch (err) {
       // If fetch fails (CORS, network, HTML response, etc.), fallback to opening the URL in a new tab
       // which allows the user to manually save the image/file.
-      // We don't change UI — just open in a new tab.
       window.open(url, "_blank", "noopener,noreferrer");
     }
   };
@@ -418,10 +390,7 @@ const AdminAnnouncements = () => {
   }, []);
 
   // Map backend announcement objects to UI-shape used by UpdateCard (details/attachments)
-  const mappedAnnouncements = (announcementsFromStore && announcementsFromStore.length > 0
-    ? announcementsFromStore
-    : updateData
-  ).map((item: any) => ({
+  const mappedAnnouncements = (Array.isArray(announcementsFromStore) ? announcementsFromStore : []).map((item: any) => ({
     id: item.id,
     title: item.title,
     date: item.date,
@@ -439,8 +408,7 @@ const AdminAnnouncements = () => {
 
   // Optional local add callback (not strictly necessary since Redux will update)
   const handleAddAnnouncementLocal = (createdMapped: any) => {
-    // no-op: Redux will already have the created item in state via thunk reducer
-    // but keeping function so modal can optionally call it
+    // no-op: Redux will already have the created item in state
   };
 
   return (
@@ -458,10 +426,46 @@ const AdminAnnouncements = () => {
         </div>
 
         <main>
-          {loading && <div className="text-sm text-gray-500 mb-3">Loading announcements...</div>}
-          {fetchError && <div className="text-sm text-red-600 mb-3">{String(fetchError)}</div>}
+          {/* Loading — centered in the content area (shows first, then data) */}
+          {loading && (
+            <div className="min-h-[40vh] flex items-center justify-center">
+              <div className="text-center text-gray-500">
+                <span className="loading loading-spinner loading-xl" />
+              </div>
+            </div>
+          )}
 
-          {mappedAnnouncements.map((update: any) => (
+          {/* show fetchError as a small inline message but keep UI usable */}
+          {!loading && fetchError && (
+            <div className="text-sm text-red-600 mb-3">{String(fetchError)}</div>
+          )}
+
+          {/* If not loading and there are no announcements, show friendly empty card */}
+          {!loading && mappedAnnouncements.length === 0 && (
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center">
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">No announcements</h3>
+              <p className="text-sm text-gray-500 mb-4">
+                There are no announcements available right now. Check back later or add a new announcement.
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  onClick={() => dispatch(fetchAnnouncements())}
+                  className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+                >
+                  Retry
+                </button>
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+                >
+                  Add Announcement
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Render announcements only after loading finished */}
+          {!loading && mappedAnnouncements.map((update: any) => (
             <UpdateCard key={update.id} update={update} />
           ))}
         </main>

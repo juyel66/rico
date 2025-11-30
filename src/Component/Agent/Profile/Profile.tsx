@@ -1,17 +1,18 @@
 // Profile.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Edit2, X, CheckCircle, Lock, Mail, Phone, User } from 'lucide-react';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import toast from 'react-hot-toast';
+import { useDispatch } from 'react-redux';
+import { changePassword } from '@/features/Auth/authSlice';
 
 /**
  * Profile.jsx
  *
  * - Fetches current user from /auth/user/ and fills header (name, email, role, joined date)
  * - Edit Personal Info modal updates via PATCH /auth/user/
- * - Change Password posts to /auth/password/change/
- * - Static metrics remain as provided
+ * - Security tab calls changePassword thunk (reads values from refs — no onChange)
  *
  * Note: ensure auth access token stored at localStorage.auth_access
  */
@@ -273,12 +274,6 @@ const EditProfileModal = ({ isOpen, onClose, currentInfo = {}, onSave }) => {
               </div>
             </div>
           </div>
-
-          {/* <div className="mt-4">
-            <label className="text-sm font-medium text-gray-700 mb-1 block">Professional Bio</label>
-            <textarea name="professionalBio" value={formData.professionalBio} onChange={handleChange} rows="4" placeholder="Tell us about your real estate experience and specialties..." className="w-full p-3 border border-gray-300 rounded-lg resize-none" />
-            <p className="text-xs text-gray-500 mt-1">This bio will be visible to clients and team members.</p>
-          </div> */}
         </div>
 
         <div className="flex justify-end space-x-3 p-6 border-t border-gray-200">
@@ -300,49 +295,92 @@ const EditProfileModal = ({ isOpen, onClose, currentInfo = {}, onSave }) => {
   );
 };
 
+/**
+ * SecurityTab:
+ * - Inputs are uncontrolled (no onChange)
+ * - Values are read from refs when Update Password clicked
+ * - Calls changePassword thunk and handles success/errors (shows errors with Swal)
+ * - Shows "Updating..." on button while request is in progress
+ */
 const SecurityTab = ({ onPasswordChange }) => {
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmNewPassword: '',
-  });
+  const dispatch = useDispatch();
+  const currentRef = useRef(null);
+  const newRef = useRef(null);
+  const confirmRef = useRef(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setPasswordForm((prev) => ({ ...prev, [name]: value }));
-  };
+  const handleUpdatePassword = async () => {
+    const payload = {
+      old_password: currentRef.current?.value || '',
+      new_password1: newRef.current?.value || '',
+      new_password2: confirmRef.current?.value || '',
+    };
 
-  const handleUpdatePassword = () => {
-    if (passwordForm.newPassword !== passwordForm.confirmNewPassword) {
-      toast.error('New password and confirmation do not match.');
-      return;
-    }
-    if (!passwordForm.currentPassword || !passwordForm.newPassword) {
-      toast.error('Please fill current and new password.');
-      return;
-    }
-    onPasswordChange(passwordForm)
-      .then(() => {
-        setPasswordForm({
-          currentPassword: '',
-          newPassword: '',
-          confirmNewPassword: '',
-        });
-      })
-      .catch(() => {
-        /* errors handled upstream */
+    console.log('SecurityTab - sending payload:', payload);
+    setIsUpdating(true);
+
+    try {
+      const res = await dispatch(changePassword(payload)).unwrap();
+      console.log('changePassword success', res);
+
+      // show success via Swal
+      Swal.fire({
+        icon: 'success',
+        title: 'Password changed',
+        text: (res && (res.detail || res.message)) || 'Password changed successfully.'
       });
+
+      // Clear inputs
+      if (currentRef.current) currentRef.current.value = '';
+      if (newRef.current) newRef.current.value = '';
+      if (confirmRef.current) confirmRef.current.value = '';
+    } catch (err) {
+      console.error('changePassword error', err);
+
+      // build message string from possible DRF-style error shapes
+      let html = '';
+      if (err?.data) {
+        const d = err.data;
+        const msgs = []
+          .concat(d.old_password || [])
+          .concat(d.new_password1 || [])
+          .concat(d.new_password2 || []);
+        if (msgs.length) html = msgs.join('<br/>');
+        else if (d.detail) html = String(d.detail);
+        else html = JSON.stringify(d);
+      } else if (err?.new_password1 || err?.new_password2 || err?.detail) {
+        const msgs = []
+          .concat(err.new_password1 || [])
+          .concat(err.new_password2 || []);
+        if (msgs.length) html = msgs.join('<br/>');
+        else if (err.detail) html = String(err.detail);
+        else html = 'Password change failed.';
+      } else if (typeof err === 'string') {
+        html = err;
+      } else {
+        html = 'Password change failed.';
+      }
+
+      // show SweetAlert with html (line breaks preserved)
+      Swal.fire({
+        icon: 'error',
+        title: 'Password change failed',
+        html,
+      });
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
-  const PasswordInput = ({ label, name, value, placeholder }) => (
+  const PasswordInput = ({ label, name, inputRef, placeholder }) => (
     <div className="mb-4">
       <p className="text-sm font-medium text-gray-700 mb-1">{label}</p>
       <div className="relative">
         <input
-          type="password"
+          // uncontrolled input: no onChange
+          ref={inputRef}
           name={name}
-          value={value}
-          onChange={handleChange}
+          type="password"
           placeholder={placeholder}
           className="w-full py-3 pl-12 pr-4 text-base border border-gray-300 rounded-lg focus:ring-gray-900 focus:border-gray-900 transition duration-150"
         />
@@ -359,32 +397,34 @@ const SecurityTab = ({ onPasswordChange }) => {
       <PasswordInput
         label="Current Password"
         name="currentPassword"
-        value={passwordForm.currentPassword}
+        inputRef={currentRef}
         placeholder="Enter current password"
       />
       <PasswordInput
         label="New Password"
         name="newPassword"
-        value={passwordForm.newPassword}
+        inputRef={newRef}
         placeholder="Enter new password"
       />
       <PasswordInput
         label="Confirm New Password"
         name="confirmNewPassword"
-        value={passwordForm.confirmNewPassword}
+        inputRef={confirmRef}
         placeholder="Confirm new password"
       />
       <button
         onClick={handleUpdatePassword}
-        className="mt-6 w-full md:w-auto px-6 py-3 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition duration-150 shadow-md shadow-gray-400/50"
+        disabled={isUpdating}
+        className={`mt-6 w-full md:w-auto px-6 py-3 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition duration-150 shadow-md shadow-gray-400/50 ${isUpdating ? 'opacity-60 cursor-not-allowed' : ''}`}
       >
-        Update Password
+        {isUpdating ? 'Updating...' : 'Update Password'}
       </button>
     </div>
   );
 };
 
 const Profile = () => {
+  const dispatch = useDispatch();
   const [activeTab, setActiveTab] = useState('Personal Information');
   const [profileData, setProfileData] = useState(initialProfileData);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -511,39 +551,39 @@ const Profile = () => {
     }
   };
 
-  // Change password
+  // Change password (kept for completeness, not used by SecurityTab)
   const handlePasswordChange = async ({ currentPassword, newPassword }) => {
-    const token = localStorage.getItem('auth_access');
-    if (!token) {
-      toast.error('Not authenticated.');
-      return Promise.reject();
-    }
     try {
-      const res = await fetch(`${API_BASE}/auth/password/change/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+      await dispatch(
+        changePassword({
           old_password: currentPassword,
           new_password1: newPassword,
           new_password2: newPassword,
-        }),
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        const msg =
-          data?.detail || JSON.stringify(data) || 'Password change failed';
-        toast.error(msg);
-        return Promise.reject(msg);
-      }
+        })
+      ).unwrap();
+
       toast.success('Password changed successfully.');
       return Promise.resolve();
     } catch (err) {
-      console.error('Password change error:', err);
-      toast.error('Password change failed.');
-      return Promise.reject(err);
+      if (err && typeof err === 'object') {
+        if (err.new_password1 || err.new_password2) {
+          const msgs = []
+            .concat(err.new_password1 || [])
+            .concat(err.new_password2 || [])
+            .join(' ');
+          toast.error(msgs || 'Password change failed.');
+          return Promise.reject(msgs || err);
+        }
+        if (err.detail) {
+          toast.error(String(err.detail));
+          return Promise.reject(err.detail);
+        }
+        toast.error(JSON.stringify(err));
+        return Promise.reject(err);
+      } else {
+        toast.error(String(err || 'Password change failed.'));
+        return Promise.reject(err);
+      }
     }
   };
 
@@ -681,11 +721,6 @@ const Profile = () => {
                   status={profileData.personalInfo.accountStatus}
                 />
               </div>
-
-              {/* <div className="pt-4">
-                <p className="text-sm font-semibold text-gray-900 mb-2">Professional Bio</p>
-                <InfoField isBio={true} value={profileData.personalInfo.professionalBio} />
-              </div> */}
             </div>
           </div>
         )}

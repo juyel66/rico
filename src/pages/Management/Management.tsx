@@ -15,7 +15,7 @@ const Management = () => {
         }}
         imageUrl="/images/managementHeroSection.png" // place your image in /public/assets
       />
-   <div className="lg:p-0 p-2 mb-[920px]" > <PropertyManagementSection/></div>
+   <div className="lg:p-0 p-2 mb-[920px] " > <PropertyManagementSection/></div>
 
     </div>
   );

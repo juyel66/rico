@@ -18,28 +18,6 @@ type UIResource = {
   raw?: any;
 };
 
-// Fallback data
-const fallbackResourceData: UIResource[] = [
-  {
-    id: 1,
-    fileType: 'document',
-    title: 'Brand Guidelines 2025',
-    description:
-      'Complete brand identity guidelines including logo usage, color palette, typography, and marketing templates.',
-    category: 'templates',
-    downloadUrl: '#',
-  },
-  {
-    id: 2,
-    fileType: 'document',
-    title: 'Client Onboarding Form V3',
-    description:
-      'Official client onboarding and agreement form for new property management contracts.',
-    category: 'legal_forms',
-    downloadUrl: '#',
-  },
-];
-
 const CATEGORIES_DISPLAY = ['All', 'Branding', 'Templates', 'Legal Forms', 'Training', 'Market Research', 'External Tools'] as const;
 const CATEGORY_TO_API: Record<string, string> = {
   Branding: 'branding',
@@ -72,7 +50,6 @@ function getFileUrl(filePath?: string | null) {
 
 /* -----------------------
    normalize a category string (slug / display) to comparable form
-   - returns slug form (lowercase with underscores)
 ------------------------*/
 function normalizeCategoryForCompare(cat?: string | null) {
   if (!cat) return '';
@@ -80,7 +57,7 @@ function normalizeCategoryForCompare(cat?: string | null) {
 }
 
 /* -----------------------
-   Normalized card
+   ResourceCard
 ------------------------*/
 const ResourceCard = ({ resource, onDownload }: { resource: UIResource; onDownload: (r: UIResource) => void }) => {
   const fileCount = resource.files?.length ?? (resource.downloadUrl ? 1 : 0);
@@ -112,8 +89,6 @@ const ResourceCard = ({ resource, onDownload }: { resource: UIResource; onDownlo
         </div>
       </div>
 
-    
-
       <div className="flex gap-2">
         <button
           onClick={() => onDownload(resource)}
@@ -136,8 +111,10 @@ export default function Resources() {
   const apiState = useSelector((s: any) => s.propertyBooking ?? {});
   const apiResources = apiState.resources ?? [];
   const apiLoading = apiState.loading ?? false;
+  const apiError = apiState.error ?? null;
 
-  const [resources, setResources] = useState<UIResource[]>(fallbackResourceData);
+  // Start empty — no static fallback data
+  const [resources, setResources] = useState<UIResource[]>([]);
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -162,11 +139,15 @@ export default function Resources() {
         console.error('fetchResources failed', err);
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
 
-  // normalization: accept both `files` array and `file` single-field from backend
+  // normalize API resources into UIResources — if API returns empty, clear resources so "no data" shows
   useEffect(() => {
-    if (!Array.isArray(apiResources) || apiResources.length === 0) return;
+    if (!Array.isArray(apiResources) || apiResources.length === 0) {
+      setResources([]); // explicit: no fallback data
+      return;
+    }
 
     const normalized: UIResource[] = apiResources.map((r: any, idx: number) => {
       const singularFile = r.file ?? r.file_path ?? null;
@@ -187,7 +168,6 @@ export default function Resources() {
         id: r.id ?? r.pk ?? `api-${idx}`,
         title: r.title ?? r.name ?? 'Untitled',
         description: r.description ?? r.details ?? '',
-        // keep backend value as-is (we'll compare using slug/normalized)
         category: r.category ?? r.type ?? '',
         fileType: r.file_type ?? (filesArr[0]?.type ?? 'document'),
         downloadUrl,
@@ -216,12 +196,11 @@ export default function Resources() {
       (resource.title ?? '').toLowerCase().includes(search) ||
       (resource.description ?? '').toLowerCase().includes(search);
 
-    // category handling: if 'All' selected, allow all; otherwise compare normalized slug forms
     if (activeCategory === 'All') {
       return searchMatch;
     }
 
-    const expectedApiKey = mapCategoryToApi(activeCategory); // e.g. "Market Research" -> "market_research"
+    const expectedApiKey = mapCategoryToApi(activeCategory);
     const resourceCatNormalized = normalizeCategoryForCompare(resource.category);
     const expectedNormalized = normalizeCategoryForCompare(expectedApiKey);
 
@@ -313,7 +292,6 @@ export default function Resources() {
 
       const data = action.payload ?? action;
 
-      // Construct UI resource mapping singular `file` or files returned by backend
       const returnedFiles: APIResourceFile[] =
         Array.isArray(data?.files) && data.files.length
           ? data.files.map((f: any) => ({ name: f.name ?? f.filename ?? String(f.file || '').split('/').pop(), url: getFileUrl(f.file ?? f.url ?? f.path ?? f), type: (String(f.content_type || f.type || '').startsWith('image')) ? 'image' : 'other' }))
@@ -361,10 +339,6 @@ export default function Resources() {
 
     const finalUrl = candidateUrl ?? null;
 
-    console.log('Resource clicked for download:', resource);
-    console.log('Backend raw object:', resource.raw);
-    console.log('Resolved download URL:', finalUrl);
-
     if (!finalUrl) {
       alert('No file URL available.');
       return;
@@ -410,7 +384,6 @@ export default function Resources() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900 mb-1">Resources</h1>
             <p className="text-gray-600 text-sm">Access marketing materials, templates, images and PDFs</p>
-            
           </div>
 
           <div className="flex hidden items-center gap-3">
@@ -442,18 +415,56 @@ export default function Resources() {
           </div>
         </div>
 
-        {apiLoading && <div className="text-center text-sm text-gray-500 mb-4">Loading resources...</div>}
-        {errorMessage && <div className="mb-4 text-sm text-red-600">{errorMessage}</div>}
+        {/* Loading (centered) */}
+        {apiLoading && (
+          <div className="min-h-[40vh] flex items-center justify-center">
+            <div className="text-center text-gray-500">
+              <span className="loading loading-spinner loading-xl" />
+            </div>
+          </div>
+        )}
 
-        <main className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredResources.map((resource, idx) => (
-            <ResourceCard key={resource.id ?? `res-${idx}`} resource={resource} onDownload={handleDownload} />
-          ))}
+        {/* after loading finishes show error / no-data / resources */}
+        {!apiLoading && apiError && (
+          <div className="mb-4 text-sm text-red-600">{String(apiError)}</div>
+        )}
 
-          {!apiLoading && filteredResources.length === 0 && (
-            <p className="col-span-full text-center text-gray-500 py-10">No resources found matching your filter and search criteria.</p>
-          )}
-        </main>
+        {!apiLoading && !apiError && filteredResources.length === 0 && (
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center mb-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">No resources</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              There are no resources matching your filter and search criteria right now.
+            </p>
+            <div className="flex items-center justify-center gap-3">
+              <button
+                onClick={() => dispatch(fetchResources() as any)}
+                className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+              >
+                Retry
+              </button>
+              <button
+                onClick={openModal}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+              >
+                Add Resource
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Resource grid (only shown when not loading) */}
+        {!apiLoading && (
+          <main className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredResources.map((resource, idx) => (
+              <ResourceCard key={resource.id ?? `res-${idx}`} resource={resource} onDownload={handleDownload} />
+            ))}
+
+            {/* if API returned resources but filtering removed all, show message inside grid */}
+            {!apiLoading && resources.length > 0 && filteredResources.length === 0 && (
+              <p className="col-span-full text-center text-gray-500 py-10">No resources found matching your filter and search criteria.</p>
+            )}
+          </main>
+        )}
       </div>
 
       {/* Modal */}

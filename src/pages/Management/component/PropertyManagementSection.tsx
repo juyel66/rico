@@ -29,7 +29,7 @@ const PropertyManagementSection = () => {
         className="w-full"
       
       >
-       <div className="container mx-auto py-5 p-2">
+       <div className="container mx-auto py-5 p-2 ">
          <FeatureSection 
           title="Tailored, White-Glove Service"
           description="Every villa is distinct, tailored to your needs. Our management plans align with your vision—be it a private getaway, luxury rental, or both."
@@ -51,7 +51,7 @@ const PropertyManagementSection = () => {
  </div>
 
       {/* Other sections with container */}
-      <section className="container mx-auto px-4">
+      <section className="container mx-auto px-4 pb-5 ">
         <FeatureSection
           title="Premium Rental Management"
           description="For owners who wish to generate income, our elite rental management program maximizes occupancy and revenue while safeguarding your asset. We handle:"

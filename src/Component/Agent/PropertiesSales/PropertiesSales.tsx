@@ -6,11 +6,11 @@ import { Link } from 'react-router-dom';
 /**
  * PropertiesSales.tsx
  * - Same UI/design as your Rentals page
- * - Fetches sale properties from: https://api.eastmondvillas.com/villas/properties/?listing_type=sale
+ * - Fetches sale properties from: ${API_BASE}/villas/properties/?listing_type=sale
  * - Shows only assigned properties:
  *     - If agentId prop is provided -> shows properties where assigned_agent === agentId
  *     - If agentId prop is not provided -> shows properties where assigned_agent is present (any agent)
- * - Adds small Agent # badge to the card (if assigned_agent available)
+ * - Starts with empty data (no demo fallback). Shows friendly No-data card when backend not available or result empty.
  */
 
 // --- TYPE DEFINITIONS ---
@@ -31,38 +31,6 @@ interface Property {
   assigned_agent?: number | null;
 }
 
-// --- DEMO PROPERTY DATA (fallback) ---
-const initialProperties: Property[] = [
-  {
-    id: 111111111,
-    title: 'Seaside Luxury Villa',
-    address: '12 Ocean View Blvd, Malibu, CA',
-    price: 5200000,
-    bedrooms: 6,
-    bathrooms: 7,
-    pool: 2,
-    status: 'published',
-    imageUrl:
-      'https://images.unsplash.com/photo-1507089947368-19c1da9775ae?auto=format&fit=crop&w=400&q=80',
-    listing_type: 'sale',
-    assigned_agent: null,
-  },
-  {
-    id: 222222222,
-    title: 'Urban Loft Penthouse',
-    address: '88 Skyline Ave, San Francisco, CA',
-    price: 3200000,
-    bedrooms: 3,
-    bathrooms: 3,
-    pool: 0,
-    status: 'published',
-    imageUrl:
-      'https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=400&q=80',
-    listing_type: 'sale',
-    assigned_agent: 87,
-  },
-];
-
 // --- API base (defaults to your server) ---
 const API_BASE =
   (import.meta as any).env?.VITE_API_BASE?.replace(/\/+$/, '') ||
@@ -76,6 +44,10 @@ const formatPrice = (amount: number) => {
     minimumFractionDigits: 0,
   }).format(amount);
 };
+
+// Placeholder image
+const PLACEHOLDER_IMAGE =
+  'https://placehold.co/400x300/D1D5DB/4B5563?text=NO+IMAGE';
 
 // --- PROPERTY CARD (same look as Rentals card) ---
 const PropertyCard: React.FC<{ property: Property }> = ({ property }) => {
@@ -163,7 +135,7 @@ const PropertyCard: React.FC<{ property: Property }> = ({ property }) => {
       {/* Image */}
       <div className="w-full md:w-48 lg:w-52 h-44 md:h-auto flex-shrink-0">
         <img
-          src={imageUrl}
+          src={imageUrl ?? PLACEHOLDER_IMAGE}
           alt={title}
           className="w-full h-full object-cover rounded-xl"
           onError={(e) => {
@@ -286,16 +258,16 @@ const PropertyCard: React.FC<{ property: Property }> = ({ property }) => {
 };
 
 // --- MAIN COMPONENT (Sales) ---
-// Props: optional agentId — if provided show only properties assigned to that agent.
-// If not provided, show only properties assigned to any agent.
 type Props = {
   agentId?: number | null;
 };
 
 const PropertiesSales: React.FC<Props> = ({ agentId: propAgentId = null }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [properties, setProperties] = useState<Property[]>(initialProperties);
+  const [properties, setProperties] = useState<Property[]>([]); // start empty, use backend only
   const [loading, setLoading] = useState<boolean>(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [lastFetchAt, setLastFetchAt] = useState<number | null>(null);
 
   // Resolve agentId (prop first, then localStorage if available)
   const resolvedAgentId = useMemo(() => {
@@ -316,86 +288,100 @@ const PropertiesSales: React.FC<Props> = ({ agentId: propAgentId = null }) => {
     return null;
   }, [propAgentId]);
 
-  useEffect(() => {
-    let cancelled = false;
+  const loadProperties = async (opts?: { ignoreResults?: { current: boolean } }) => {
+    setLoading(true);
+    setLoadError(null);
 
-    const load = async () => {
-      setLoading(true);
-      try {
-        const url = `${API_BASE.replace(/\/+$/, '')}/villas/properties/?listing_type=sale`;
-        const res = await fetch(url, {
-          headers: { Accept: 'application/json' },
-        });
-        if (!res.ok) {
-          console.warn('Properties API fetch failed:', res.status);
-          if (!cancelled) setProperties(initialProperties);
-          return;
-        }
-        const data = await res.json();
-        const list = Array.isArray(data)
-          ? data
-          : (data?.results ?? data?.items ?? []);
-        const mapped: Property[] = list.map((p: any) => {
-          let img = p.main_image_url ?? p.imageUrl ?? null;
-          if (
-            !img &&
-            Array.isArray(p.media_images) &&
-            p.media_images.length > 0
-          ) {
-            img = p.media_images[0]?.image ?? null;
-          }
-          if (img && img.startsWith('/')) {
-            img = `${API_BASE.replace(/\/api\/?$/, '')}${img}`;
-          }
-          const priceVal =
-            Number(p.price ?? p.price_display ?? p.total_price ?? 0) || 0;
-          const address =
-            p.address ??
-            (p.location
-              ? typeof p.location === 'string'
-                ? p.location
-                : ''
-              : '') ??
-            p.city ??
-            '';
-          return {
-            id: Number(p.id ?? p.pk ?? Math.floor(Math.random() * 1e9)),
-            title: p.title ?? p.name ?? p.slug ?? 'Untitled',
-            address: address || '—',
-            price: priceVal,
-            bedrooms: Number(p.bedrooms ?? p.num_bedrooms ?? 0),
-            bathrooms: Number(p.bathrooms ?? p.num_bathrooms ?? 0),
-            pool: Number(p.pool ?? 0),
-            status:
-              (String(p.status ?? p.state ?? 'draft').toLowerCase() as
-                | 'published'
-                | 'draft'
-                | 'pending') ?? 'draft',
-            imageUrl: img || initialProperties[0].imageUrl,
-            description: p.description ?? p.short_description ?? null,
-            calendar_link: p.calendar_link ?? p.google_calendar_id ?? null,
-            _raw: p,
-            listing_type: p.listing_type ?? 'sale',
-            assigned_agent: p.assigned_agent ?? null,
-          };
-        });
+    try {
+      const url = `${API_BASE.replace(/\/+$/, '')}/villas/properties/?listing_type=sale`;
+      const res = await fetch(url, {
+        headers: { Accept: 'application/json' },
+        // intentionally no signal to avoid AbortError logging in devtools
+      });
 
-        if (!cancelled)
-          setProperties(mapped.length ? mapped : initialProperties);
-      } catch (err) {
-        console.error('Failed to load properties', err);
-        if (!cancelled) setProperties(initialProperties);
-      } finally {
-        if (!cancelled) setLoading(false);
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        throw new Error(`Server returned ${res.status} ${text}`.trim());
       }
-    };
 
-    load();
+      const data = await res.json();
+      const list = Array.isArray(data)
+        ? data
+        : (data?.results ?? data?.items ?? []);
+
+      const mapped: Property[] = list.map((p: any) => {
+        let img = p.main_image_url ?? p.imageUrl ?? null;
+        if (!img && Array.isArray(p.media_images) && p.media_images.length > 0) {
+          img = p.media_images[0]?.image ?? null;
+        }
+        if (img && img.startsWith('/')) {
+          img = `${API_BASE.replace(/\/api\/?$/, '')}${img}`;
+        }
+        const priceVal =
+          Number(p.price ?? p.price_display ?? p.total_price ?? 0) || 0;
+        const address =
+          p.address ??
+          (p.location
+            ? typeof p.location === 'string'
+              ? p.location
+              : ''
+            : '') ??
+          p.city ??
+          '';
+        return {
+          id: Number(p.id ?? p.pk ?? Math.floor(Math.random() * 1e9)),
+          title: p.title ?? p.name ?? p.slug ?? 'Untitled',
+          address: address || '—',
+          price: priceVal,
+          bedrooms: Number(p.bedrooms ?? p.num_bedrooms ?? 0),
+          bathrooms: Number(p.bathrooms ?? p.num_bathrooms ?? 0),
+          pool: Number(p.pool ?? 0),
+          status:
+            (String(p.status ?? p.state ?? 'draft').toLowerCase() as
+              | 'published'
+              | 'draft'
+              | 'pending') ?? 'draft',
+          imageUrl: img || PLACEHOLDER_IMAGE,
+          description: p.description ?? p.short_description ?? null,
+          calendar_link: p.calendar_link ?? p.google_calendar_id ?? null,
+          _raw: p,
+          listing_type: p.listing_type ?? 'sale',
+          assigned_agent: p.assigned_agent ?? null,
+        };
+      });
+
+      if (opts?.ignoreResults?.current) return;
+
+      setProperties(mapped);
+      setLastFetchAt(Date.now());
+    } catch (err: any) {
+      console.error('Failed to load properties', err);
+      if (opts?.ignoreResults?.current) return;
+      setProperties([]); // ensure empty when backend not available
+      setLoadError(err?.message ?? 'Failed to load properties.');
+    } finally {
+      if (!(opts?.ignoreResults?.current)) {
+        setLoading(false);
+      } else {
+        try { setLoading(false); } catch {}
+      }
+    }
+  };
+
+  useEffect(() => {
+    const ignore = { current: false };
+    loadProperties({ ignoreResults: ignore });
 
     return () => {
-      cancelled = true;
+      ignore.current = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleRetry = () => {
+    const ignore = { current: false };
+    loadProperties({ ignoreResults: ignore });
+  };
 
   // Filter logic: only 'sale' listing_type, plus assigned_agent logic:
   const filteredProperties = useMemo(() => {
@@ -404,11 +390,9 @@ const PropertiesSales: React.FC<Props> = ({ agentId: propAgentId = null }) => {
       if ((p.listing_type ?? 'sale') !== 'sale') return false;
 
       if (resolvedAgentId !== null) {
-        // show only properties assigned to this specific agent
         if (Number(p.assigned_agent ?? -1) !== Number(resolvedAgentId))
           return false;
       } else {
-        // show only properties that are assigned to any agent
         if (
           p.assigned_agent === null ||
           typeof p.assigned_agent === 'undefined'
@@ -423,6 +407,9 @@ const PropertiesSales: React.FC<Props> = ({ agentId: propAgentId = null }) => {
       );
     });
   }, [searchTerm, properties, resolvedAgentId]);
+
+  const shouldShowNoData =
+    !loading && (Array.isArray(properties) && properties.length === 0 || filteredProperties.length === 0);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
@@ -458,9 +445,45 @@ const PropertiesSales: React.FC<Props> = ({ agentId: propAgentId = null }) => {
           />
         </div>
 
+        {/* loading spinner (matching Rentals) */}
         {loading && (
           <div className="text-center text-gray-500 mb-6">
-            Loading properties…
+           
+          </div>
+        )}
+
+        {/* No-data card (backend empty or filtering empty) */}
+        {!loading && shouldShowNoData && (
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">No sales properties available</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              {loadError
+                ? "We couldn't load properties from the server. Please check your connection or try again."
+                : "There are no sales assigned to the selected agent or matching your search."}
+            </p>
+
+            <div className="flex items-center justify-center gap-3">
+              <button
+                onClick={handleRetry}
+                className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+              >
+                <span className="loading loading-spinner loading-xl"></span>
+              </button>
+
+           
+            </div>
+
+            {loadError && (
+              <div className="mt-4 text-xs text-gray-400">
+                <strong>Details:</strong> {loadError}
+              </div>
+            )}
+
+            {lastFetchAt && (
+              <div className="mt-2 text-xs text-gray-300">
+                Last attempt: {new Date(lastFetchAt).toLocaleString()}
+              </div>
+            )}
           </div>
         )}
 
@@ -468,7 +491,7 @@ const PropertiesSales: React.FC<Props> = ({ agentId: propAgentId = null }) => {
           <PropertyCard key={property.id} property={property} />
         ))}
 
-        {!loading && filteredProperties.length === 0 && (
+        {!loading && filteredProperties.length === 0 && !shouldShowNoData && (
           <div className="text-center text-gray-500">
             {resolvedAgentId !== null
               ? 'No sales properties found assigned to this agent.'

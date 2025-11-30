@@ -230,8 +230,6 @@
 
 // export default PropertiesRentalsDetails;
 
-
-
 import React, { FC, useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
@@ -322,6 +320,7 @@ const downloadFile = (url: string, filename: string) => {
 };
 
 // --- NETWORKED fetchPropertyById ---
+// NOTE: it still accepts an optional signal, but we'll call it without a signal to avoid aborts.
 const fetchPropertyById = async (id: string, signal?: AbortSignal): Promise<Property> => {
   const url = `${API_BASE}/villas/properties/${encodeURIComponent(id)}/`;
 
@@ -403,7 +402,10 @@ const PropertiesRentalsDetails: FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 3. Effect to fetch data on component mount or ID change (with AbortController)
+  // State for Description expansion
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // 3. Effect to fetch data on component mount or ID change (using cancelled flag to avoid AbortError)
   useEffect(() => {
     if (!id) {
       setError("Property ID not found in URL.");
@@ -411,35 +413,33 @@ const PropertiesRentalsDetails: FC = () => {
       return;
     }
 
-    const controller = new AbortController();
+    let cancelled = false;
 
     const loadProperty = async () => {
       setLoading(true);
       setError(null);
       try {
-        const fetchedProperty = await fetchPropertyById(id, controller.signal);
-        setProperty(fetchedProperty);
-      } catch (err: any) {
-        if (err.name === 'AbortError') {
-          console.log('Fetch aborted');
-          return;
+        // Call without a signal to avoid AbortController-related AbortError logging in devtools
+        const fetchedProperty = await fetchPropertyById(id);
+        if (!cancelled) {
+          setProperty(fetchedProperty);
         }
+      } catch (err: any) {
+        // If component unmounted, we simply ignore result
+        if (cancelled) return;
         console.error(err);
         setError(err?.message || "Failed to load property details.");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     loadProperty();
 
     return () => {
-      controller.abort();
+      cancelled = true;
     };
   }, [id]);
-
-  // State for Description expansion
-  const [isExpanded, setIsExpanded] = useState(false);
 
   // --- NEW: Download Images Handler ---
   const handleDownloadAllImages = () => {
@@ -601,7 +601,7 @@ const PropertiesRentalsDetails: FC = () => {
             <p className="text-gray-800 font-semibold">{seo_info.meta_title}</p>
           </div>
           <div>
-            <p className="text-gray-500 text-sm font-medium">Meta Description</p>
+            <p className="text-gray-500 text-sm font medium">Meta Description</p>
             <p className="text-gray-700">{seo_info.meta_description}</p>
           </div>
           <div>
