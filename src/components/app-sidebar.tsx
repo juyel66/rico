@@ -24,7 +24,8 @@ const ADMIN = [
   { title: "User Management", url: "/dashboard/admin-user-management", img: "https://res.cloudinary.com/dqkczdjjs/image/upload/v1762893337/Icon_2_yt5edq.png" },
 
   { title: "Booking Management", url: "/dashboard/admin-booking-management", img: "https://res.cloudinary.com/dqkczdjjs/image/upload/v1762893411/Icon_3_qzhh6y.png" },
-  { title: "All Contact", url: "/dashboard/admin-allContact", img: "https://res.cloudinary.com/dqkczdjjs/image/upload/v1760835665/Icon_6_zia1hb.png" },
+  { title: "All Contact", url: "/dashboard/admin-allContact", img: "https://res.cloudinary.com/dqkczdjjs/image/upload/v1764619370/Vector_3_xhvsh3.png" },
+  { title: "All Review", url: "/dashboard/admin-allReview", img: "https://res.cloudinary.com/dqkczdjjs/image/upload/v1764619370/Vector_4_wmybu2.png" },
   { title: "Resources", url: "/dashboard/admin-resources", img: "https://res.cloudinary.com/dqkczdjjs/image/upload/v1760835779/Icon_9_v2svx7.png" },
   { title: "FAQs", url: "/dashboard/admin-faqs", img: "https://res.cloudinary.com/dqkczdjjs/image/upload/v1760836607/Icon_19_wiysfq.png" },
   { title: "Profile", url: "/dashboard/admin-profile", img: "https://res.cloudinary.com/dqkczdjjs/image/upload/v1760836746/Icon_20_hv1hl4.png" },
