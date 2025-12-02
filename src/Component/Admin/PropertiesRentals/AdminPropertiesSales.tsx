@@ -40,7 +40,7 @@ const ToastNotification: React.FC<{
   );
 };
 
-/* ---------- normalize payload helper ---------- */
+
 function toArray(payload: any): any[] {
   if (!payload) return [];
   if (Array.isArray(payload)) return payload;
