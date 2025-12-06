@@ -2,15 +2,15 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Search, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { selectCurrentUser } from '@/features/Auth/authSlice';
 
 /**
  * PropertiesSales.tsx
  * - Same UI/design as your Rentals page
  * - Fetches sale properties from: ${API_BASE}/villas/properties/?listing_type=sale
- * - Shows only assigned properties:
- *     - If agentId prop is provided -> shows properties where assigned_agent === agentId
- *     - If agentId prop is not provided -> shows properties where assigned_agent is present (any agent)
- * - Starts with empty data (no demo fallback). Shows friendly No-data card when backend not available or result empty.
+ * - Shows ONLY properties assigned to the current user (by ID)
+ * - Now logs raw & mapped data to console for debugging
  */
 
 // --- TYPE DEFINITIONS ---
@@ -110,7 +110,9 @@ const PropertyCard: React.FC<{ property: Property }> = ({ property }) => {
       const url =
         String(imgUrl).startsWith('http') || String(imgUrl).startsWith('//')
           ? String(imgUrl)
-          : `${API_BASE.replace(/\/api\/?$/, '')}${imgUrl.startsWith('/') ? imgUrl : '/' + imgUrl}`;
+          : `${API_BASE.replace(/\/api\/?$/, '')}${
+              imgUrl.startsWith('/') ? imgUrl : '/' + imgUrl
+            }`;
 
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -119,7 +121,9 @@ const PropertyCard: React.FC<{ property: Property }> = ({ property }) => {
       const a = document.createElement('a');
       a.href = blobUrl;
       const ext = blob.type.split('/')[1] || 'jpg';
-      a.download = `${title.replace(/\s+/g, '-').toLowerCase() || 'image'}.${ext}`;
+      a.download = `${
+        title.replace(/\s+/g, '-').toLowerCase() || 'image'
+      }.${ext}`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -264,20 +268,33 @@ type Props = {
 
 const PropertiesSales: React.FC<Props> = ({ agentId: propAgentId = null }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [properties, setProperties] = useState<Property[]>([]); // start empty, use backend only
+  const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [lastFetchAt, setLastFetchAt] = useState<number | null>(null);
 
-  // Resolve agentId (prop first, then localStorage if available)
-  const resolvedAgentId = useMemo(() => {
-    if (typeof propAgentId === 'number' && !isNaN(propAgentId))
-      return propAgentId;
+  // Logged-in user from Redux
+  const currentUser = useSelector(selectCurrentUser) as
+    | { id?: number | string | null; email?: string | null }
+    | null;
+
+  // Current user numeric ID
+  const currentUserId = useMemo(() => {
+    if (currentUser?.id !== undefined && currentUser?.id !== null) {
+      const n = Number(currentUser.id);
+      if (!isNaN(n)) return n;
+    }
+    return null;
+  }, [currentUser]);
+
+  // Fallback from localStorage
+  const lsAgentId = useMemo(() => {
     try {
       const fromLS =
         localStorage.getItem('agent_id') ??
         localStorage.getItem('assigned_agent') ??
-        localStorage.getItem('agentId');
+        localStorage.getItem('agentId') ??
+        localStorage.getItem('user_id');
       if (fromLS) {
         const n = Number(fromLS);
         if (!isNaN(n)) return n;
@@ -286,17 +303,31 @@ const PropertiesSales: React.FC<Props> = ({ agentId: propAgentId = null }) => {
       // ignore
     }
     return null;
-  }, [propAgentId]);
+  }, []);
 
-  const loadProperties = async (opts?: { ignoreResults?: { current: boolean } }) => {
+  // Final agent ID used for filtering
+  const effectiveAgentId = useMemo(() => {
+    if (typeof propAgentId === 'number' && !isNaN(propAgentId)) {
+      return propAgentId;
+    }
+    if (currentUserId !== null) return currentUserId;
+    if (lsAgentId !== null) return lsAgentId;
+    return null;
+  }, [propAgentId, currentUserId, lsAgentId]);
+
+  const loadProperties = async (opts?: {
+    ignoreResults?: { current: boolean };
+  }) => {
     setLoading(true);
     setLoadError(null);
 
     try {
-      const url = `${API_BASE.replace(/\/+$/, '')}/villas/properties/?listing_type=sale`;
+      const url = `${API_BASE.replace(
+        /\/+$/,
+        ''
+      )}/villas/properties/?listing_type=sale`;
       const res = await fetch(url, {
         headers: { Accept: 'application/json' },
-        // intentionally no signal to avoid AbortError logging in devtools
       });
 
       if (!res.ok) {
@@ -305,13 +336,20 @@ const PropertiesSales: React.FC<Props> = ({ agentId: propAgentId = null }) => {
       }
 
       const data = await res.json();
+
+      // 🔍 LOG RAW RESPONSE
+      console.log('[Sales] Raw response from /villas/properties:', data);
+
       const list = Array.isArray(data)
         ? data
-        : (data?.results ?? data?.items ?? []);
+        : data?.results ?? data?.items ?? [];
+
+      // 🔍 LOG PARSED LIST
+      console.log('[Sales] Parsed sale properties list:', list);
 
       const mapped: Property[] = list.map((p: any) => {
         let img = p.main_image_url ?? p.imageUrl ?? null;
-        if (!img && Array.isArray(p.media_images) && p.media_images.length > 0) {
+        if (img == null && Array.isArray(p.media_images) && p.media_images.length > 0) {
           img = p.media_images[0]?.image ?? null;
         }
         if (img && img.startsWith('/')) {
@@ -328,6 +366,7 @@ const PropertiesSales: React.FC<Props> = ({ agentId: propAgentId = null }) => {
             : '') ??
           p.city ??
           '';
+
         return {
           id: Number(p.id ?? p.pk ?? Math.floor(Math.random() * 1e9)),
           title: p.title ?? p.name ?? p.slug ?? 'Untitled',
@@ -346,9 +385,15 @@ const PropertiesSales: React.FC<Props> = ({ agentId: propAgentId = null }) => {
           calendar_link: p.calendar_link ?? p.google_calendar_id ?? null,
           _raw: p,
           listing_type: p.listing_type ?? 'sale',
-          assigned_agent: p.assigned_agent ?? null,
+          assigned_agent:
+            typeof p.assigned_agent === 'number'
+              ? p.assigned_agent
+              : p.assigned_agent?.id ?? null,
         };
       });
+
+      // 🔍 LOG MAPPED DATA
+      console.log('[Sales] Mapped sale properties:', mapped);
 
       if (opts?.ignoreResults?.current) return;
 
@@ -357,13 +402,17 @@ const PropertiesSales: React.FC<Props> = ({ agentId: propAgentId = null }) => {
     } catch (err: any) {
       console.error('Failed to load properties', err);
       if (opts?.ignoreResults?.current) return;
-      setProperties([]); // ensure empty when backend not available
+      setProperties([]);
       setLoadError(err?.message ?? 'Failed to load properties.');
     } finally {
-      if (!(opts?.ignoreResults?.current)) {
+      if (!opts?.ignoreResults?.current) {
         setLoading(false);
       } else {
-        try { setLoading(false); } catch {}
+        try {
+          setLoading(false);
+        } catch {
+          // ignore
+        }
       }
     }
   };
@@ -383,33 +432,34 @@ const PropertiesSales: React.FC<Props> = ({ agentId: propAgentId = null }) => {
     loadProperties({ ignoreResults: ignore });
   };
 
-  // Filter logic: only 'sale' listing_type, plus assigned_agent logic:
+  // Filter logic: only 'sale' listing_type, plus agent ID == current user
   const filteredProperties = useMemo(() => {
     const lower = searchTerm.toLowerCase();
+
     return properties.filter((p) => {
       if ((p.listing_type ?? 'sale') !== 'sale') return false;
 
-      if (resolvedAgentId !== null) {
-        if (Number(p.assigned_agent ?? -1) !== Number(resolvedAgentId))
-          return false;
-      } else {
-        if (
-          p.assigned_agent === null ||
-          typeof p.assigned_agent === 'undefined'
-        )
-          return false;
+      // Without effectiveAgentId we show nothing
+      if (effectiveAgentId === null) return false;
+
+      // Only show if assigned_agent matches current/active agent ID
+      if (Number(p.assigned_agent ?? -1) !== Number(effectiveAgentId)) {
+        return false;
       }
 
       if (!lower) return true;
+
       return (
         p.title.toLowerCase().includes(lower) ||
         p.address.toLowerCase().includes(lower)
       );
     });
-  }, [searchTerm, properties, resolvedAgentId]);
+  }, [searchTerm, properties, effectiveAgentId]);
 
   const shouldShowNoData =
-    !loading && (Array.isArray(properties) && properties.length === 0 || filteredProperties.length === 0);
+    !loading &&
+    ((Array.isArray(properties) && properties.length === 0) ||
+      filteredProperties.length === 0);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
@@ -423,13 +473,13 @@ const PropertiesSales: React.FC<Props> = ({ agentId: propAgentId = null }) => {
           </p>
 
           <div className="mt-3 text-sm text-gray-500">
-            {resolvedAgentId !== null ? (
+            {effectiveAgentId !== null ? (
               <>
-                Showing sales assigned to agent{' '}
-                <strong>{resolvedAgentId}</strong>.
+                Showing sales assigned to agent ID{' '}
+                <strong>{effectiveAgentId}</strong>.
               </>
             ) : (
-              <>Showing sales assigned to any agent.</>
+              <>You are not associated with an agent account. No sales are visible.</>
             )}
           </div>
         </header>
@@ -448,18 +498,20 @@ const PropertiesSales: React.FC<Props> = ({ agentId: propAgentId = null }) => {
         {/* loading spinner (matching Rentals) */}
         {loading && (
           <div className="text-center text-gray-500 mb-6">
-           
+            {/* Optional spinner here */}
           </div>
         )}
 
         {/* No-data card (backend empty or filtering empty) */}
         {!loading && shouldShowNoData && (
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">No sales properties available</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">
+              No sales properties available
+            </h3>
             <p className="text-sm text-gray-500 mb-4">
               {loadError
                 ? "We couldn't load properties from the server. Please check your connection or try again."
-                : "There are no sales assigned to the selected agent or matching your search."}
+                : 'There are no sales assigned to your account or matching your search.'}
             </p>
 
             <div className="flex items-center justify-center gap-3">
@@ -469,8 +521,6 @@ const PropertiesSales: React.FC<Props> = ({ agentId: propAgentId = null }) => {
               >
                 <span className="loading loading-spinner loading-xl"></span>
               </button>
-
-           
             </div>
 
             {loadError && (
@@ -493,9 +543,7 @@ const PropertiesSales: React.FC<Props> = ({ agentId: propAgentId = null }) => {
 
         {!loading && filteredProperties.length === 0 && !shouldShowNoData && (
           <div className="text-center text-gray-500">
-            {resolvedAgentId !== null
-              ? 'No sales properties found assigned to this agent.'
-              : 'No sales properties found that are assigned to any agent.'}
+            No sales properties found assigned to your account.
           </div>
         )}
       </div>
