@@ -158,12 +158,8 @@ const PropertyCard: React.FC<{ property: Property }> = ({ property }) => {
             </h2>
             <div className="flex items-center gap-2">
               <StatusBadge status={status} />
-              {typeof assigned_agent !== 'undefined' &&
-                assigned_agent !== null && (
-                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 whitespace-nowrap">
-                    Agent #{assigned_agent}
-                  </span>
-                )}
+              
+            
             </div>
           </div>
 
