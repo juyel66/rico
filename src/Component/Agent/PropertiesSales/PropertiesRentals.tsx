@@ -2,6 +2,8 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Search, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { selectCurrentUser } from "@/features/Auth/authSlice";
 
 // --- TYPE DEFINITIONS ---
 interface Property {
@@ -41,8 +43,17 @@ const PLACEHOLDER_IMAGE =
 
 // --- PROPERTY CARD ---
 const PropertyCard: React.FC<{ property: Property }> = ({ property }) => {
-  const { id, title, address, price, bedrooms, bathrooms, pool, status, imageUrl } =
-    property;
+  const {
+    id,
+    title,
+    address,
+    price,
+    bedrooms,
+    bathrooms,
+    pool,
+    status,
+    imageUrl,
+  } = property;
 
   const StatusBadge = ({ status }: { status: Property["status"] }) => {
     let bgColor = "bg-gray-100 text-gray-700";
@@ -90,7 +101,9 @@ const PropertyCard: React.FC<{ property: Property }> = ({ property }) => {
       const url =
         String(imgUrl).startsWith("http") || String(imgUrl).startsWith("//")
           ? String(imgUrl)
-          : `${API_BASE.replace(/\/api\/?$/, "")}${imgUrl.startsWith("/") ? imgUrl : "/" + imgUrl}`;
+          : `${API_BASE.replace(/\/api\/?$/, "")}${
+              imgUrl.startsWith("/") ? imgUrl : "/" + imgUrl
+            }`;
 
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -100,7 +113,9 @@ const PropertyCard: React.FC<{ property: Property }> = ({ property }) => {
       a.href = blobUrl;
       // build friendly filename
       const ext = blob.type.split("/")[1] || "jpg";
-      a.download = `${title.replace(/\s+/g, "-").toLowerCase() || "image"}.${ext}`;
+      a.download = `${
+        title.replace(/\s+/g, "-").toLowerCase() || "image"
+      }.${ext}`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -179,7 +194,10 @@ const PropertyCard: React.FC<{ property: Property }> = ({ property }) => {
 
           <button
             onClick={() =>
-              copyToClipboard(property.description ?? `${title} - ${address}`, "Description")
+              copyToClipboard(
+                property.description ?? `${title} - ${address}`,
+                "Description"
+              )
             }
             className="flex w-full items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition whitespace-nowrap"
           >
@@ -234,30 +252,57 @@ const PropertiesRentals: React.FC<Props> = ({ agentId: propAgentId = null }) => 
   const [loadError, setLoadError] = useState<string | null>(null);
   const [lastFetchAt, setLastFetchAt] = useState<number | null>(null);
 
-  // Resolve current agent id:
-  const resolvedAgentId = useMemo(() => {
-    if (typeof propAgentId === "number" && !isNaN(propAgentId)) return propAgentId;
+  // 🔐 Logged-in user from Redux
+  const currentUser = useSelector(selectCurrentUser) as
+    | { id?: number | string | null; email?: string | null }
+    | null;
+
+  // Current user numeric ID
+  const currentUserId = useMemo(() => {
+    if (currentUser?.id !== undefined && currentUser?.id !== null) {
+      const n = Number(currentUser.id);
+      if (!isNaN(n)) return n;
+    }
+    return null;
+  }, [currentUser]);
+
+  // Fallback from localStorage
+  const lsAgentId = useMemo(() => {
     try {
       const fromLS =
         localStorage.getItem("agent_id") ??
         localStorage.getItem("assigned_agent") ??
-        localStorage.getItem("agentId");
+        localStorage.getItem("agentId") ??
+        localStorage.getItem("user_id");
       if (fromLS) {
         const n = Number(fromLS);
         if (!isNaN(n)) return n;
       }
-    } catch (e) {
+    } catch {
       // ignore
     }
     return null;
-  }, [propAgentId]);
+  }, []);
+
+  // ✅ Final agent ID used for filtering
+  const effectiveAgentId = useMemo(() => {
+    if (typeof propAgentId === "number" && !isNaN(propAgentId)) {
+      return propAgentId;
+    }
+    if (currentUserId !== null) return currentUserId;
+    if (lsAgentId !== null) return lsAgentId;
+    return null;
+  }, [propAgentId, currentUserId, lsAgentId]);
 
   const loadProperties = async (signal?: AbortSignal) => {
     setLoading(true);
     setLoadError(null);
 
     try {
-      const url = `${API_BASE.replace(/\/+$/, "")}/villas/properties/?listing_type=rent`;
+      const url = `${API_BASE.replace(
+        /\/+$/,
+        ""
+      )}/villas/properties/?listing_type=rent`;
       const res = await fetch(url, {
         headers: { Accept: "application/json" },
         signal,
@@ -280,10 +325,15 @@ const PropertiesRentals: React.FC<Props> = ({ agentId: propAgentId = null }) => 
         if (img && img.startsWith("/")) {
           img = `${API_BASE.replace(/\/api\/?$/, "")}${img}`;
         }
-        const priceVal = Number(p.price ?? p.price_display ?? p.total_price ?? 0) || 0;
+        const priceVal =
+          Number(p.price ?? p.price_display ?? p.total_price ?? 0) || 0;
         const address =
           p.address ??
-          (p.location ? (typeof p.location === "string" ? p.location : "") : "") ??
+          (p.location
+            ? typeof p.location === "string"
+              ? p.location
+              : ""
+            : "") ??
           p.city ??
           "";
 
@@ -305,7 +355,10 @@ const PropertiesRentals: React.FC<Props> = ({ agentId: propAgentId = null }) => 
           calendar_link: p.calendar_link ?? p.google_calendar_id ?? null,
           _raw: p,
           listing_type: p.listing_type ?? "rent",
-          assigned_agent: p.assigned_agent ?? null,
+          assigned_agent:
+            typeof p.assigned_agent === "number"
+              ? p.assigned_agent
+              : p.assigned_agent?.id ?? null,
         };
       });
 
@@ -343,40 +396,54 @@ const PropertiesRentals: React.FC<Props> = ({ agentId: propAgentId = null }) => 
     loadProperties(controller.signal);
   };
 
-  // Now filter:
+  // Now filter: only rentals where assigned_agent === effectiveAgentId
   const filteredProperties = useMemo(() => {
     const lower = searchTerm.toLowerCase();
 
     return properties.filter((p) => {
       if ((p.listing_type ?? "rent") !== "rent") return false;
 
-      if (resolvedAgentId !== null) {
-        if (Number(p.assigned_agent ?? -1) !== Number(resolvedAgentId)) return false;
-      } else {
-        if (p.assigned_agent === null || typeof p.assigned_agent === "undefined") return false;
+      // ❗ Without effectiveAgentId we show nothing
+      if (effectiveAgentId === null) return false;
+
+      // ✅ Only show rentals assigned to this agent
+      if (Number(p.assigned_agent ?? -1) !== Number(effectiveAgentId)) {
+        return false;
       }
 
       if (!lower) return true;
-      return p.title.toLowerCase().includes(lower) || p.address.toLowerCase().includes(lower);
+      return (
+        p.title.toLowerCase().includes(lower) ||
+        p.address.toLowerCase().includes(lower)
+      );
     });
-  }, [searchTerm, properties, resolvedAgentId]);
+  }, [searchTerm, properties, effectiveAgentId]);
 
   // Whether we should show the "no data" card:
   const shouldShowNoData =
-    !loading && (Array.isArray(properties) && properties.length === 0 || filteredProperties.length === 0);
+    !loading &&
+    ((Array.isArray(properties) && properties.length === 0) ||
+      filteredProperties.length === 0);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="mx-auto">
         <header className="mb-4">
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Properties - Rentals</h1>
-          <p className="text-gray-600 text-sm">Access assigned rental properties and marketing materials.</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">
+            Properties - Rentals
+          </h1>
+          <p className="text-gray-600 text-sm">
+            Access assigned rental properties and marketing materials.
+          </p>
 
           <div className="mt-3 text-sm text-gray-500">
-            {resolvedAgentId !== null ? (
-              <>Showing rentals assigned to agent <strong>{resolvedAgentId}</strong>.</>
+            {effectiveAgentId !== null ? (
+              <>
+                Showing rentals assigned to agent{" "}
+                <strong>{effectiveAgentId}</strong>.
+              </>
             ) : (
-              <>Showing rentals assigned to any agent.</>
+              <>You are not associated with an agent account. No rentals are visible.</>
             )}
           </div>
         </header>
@@ -393,17 +460,21 @@ const PropertiesRentals: React.FC<Props> = ({ agentId: propAgentId = null }) => 
         </div>
 
         {loading && (
-          <div className="text-center text-gray-500 mb-6">Loading properties…</div>
+          <div className="text-center text-gray-500 mb-6">
+            Loading properties…
+          </div>
         )}
 
         {/* If backend returned nothing or filter emptied list, show a friendly card */}
         {!loading && shouldShowNoData && (
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">No rental properties available</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">
+              No rental properties available
+            </h3>
             <p className="text-sm text-gray-500 mb-4">
               {loadError
                 ? "We couldn't load properties from the server. Please check your connection or try again."
-                : "There are no rentals assigned to the selected agent or matching your search."}
+                : "There are no rentals assigned to your account or matching your search."}
             </p>
 
             <div className="flex items-center justify-center gap-3">
@@ -411,12 +482,8 @@ const PropertiesRentals: React.FC<Props> = ({ agentId: propAgentId = null }) => 
                 onClick={handleRetry}
                 className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
               >
-
                 <span className="loading loading-spinner loading-xl"></span>
-                
               </button>
-
-             
             </div>
 
             {loadError && (
