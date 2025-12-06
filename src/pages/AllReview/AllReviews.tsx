@@ -525,6 +525,7 @@ const AllReview: React.FC = () => {
               <div className="flex items-center justify-between text-xs text-gray-500">
                 <div>Created: {formatDate(selectedReview.created_at)}</div>
                 <div>Rating: {selectedReview.rating} / 5</div>
+             
               </div>
 
               <div className="flex justify-end">
