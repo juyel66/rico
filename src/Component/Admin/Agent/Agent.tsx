@@ -43,11 +43,11 @@ export default function Agent() {
     return t ? { Authorization: `Bearer ${t}` } : {};
   };
 
-  // fetch list
+  // 🔄 fetch list from /api/agents/
   const fetchAgents = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/admin/users/`, {
+      const res = await fetch(`${API_BASE}/agents/`, {
         headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
       });
       if (!res.ok) {
@@ -57,27 +57,56 @@ export default function Agent() {
             `Error ${res.status}`
         );
       }
+
       const data = await res.json();
-      const list = (data || [])
-        .filter((u) => u.role === 'agent')
-        .map((u) => ({
-          id: u.id ?? u.pk,
-          name: u.name ?? '',
-          email: u.email ?? '',
-          phone: u.phone ?? '',
-          role: (u.role ?? 'agent').toString(),
-          permission: u.permission ?? u.permissions ?? 'only_view',
-          propertiesCount: u.propertiesCount ?? u.properties_count ?? 0,
-          is_active:
-            u.is_active ??
-            (u.status ? String(u.status).toLowerCase() === 'active' : true),
-          status: u.is_active
-            ? 'active'
-            : (u.status ?? (u.is_active ? 'active' : 'inactive')),
-          lastLogin: u.lastLogin ?? u.last_login ?? null,
-          address: u.address ?? null,
-          __raw: u,
-        }));
+
+      // 🔍 FULL API response log
+      console.log('Agents API raw response (/api/agents/):', data);
+
+      const rawList = Array.isArray(data)
+        ? data
+        : data?.results ?? data?.items ?? [];
+
+      const list = rawList
+        // in case backend somehow returns non-agent users too
+        .filter((u) => (u.role ?? 'agent') === 'agent')
+        .map((u) => {
+          const assignedTotal =
+            Number(u.assigned_total_property ?? 0) || 0;
+
+          // per-agent debug
+          console.log('Mapped agent item:', {
+            id: u.id,
+            name: u.name,
+            email: u.email,
+            assigned_total_property: u.assigned_total_property,
+            used_assigned_total_property: assignedTotal,
+          });
+
+          return {
+            id: u.id ?? u.pk,
+            name: u.name ?? '',
+            email: u.email ?? '',
+            phone: u.phone ?? '',
+            role: (u.role ?? 'agent').toString(),
+            permission: u.permission ?? u.permissions ?? 'download',
+            // 🔥 properties based on assigned_total_property
+            propertiesCount: assignedTotal,
+            assigned_total_property: assignedTotal,
+            is_active:
+              typeof u.is_active === 'boolean'
+                ? u.is_active
+                : true,
+            status:
+              typeof u.is_active === 'boolean' && !u.is_active
+                ? 'inactive'
+                : 'active',
+            lastLogin: u.lastLogin ?? u.last_login ?? null,
+            address: u.address ?? null,
+            __raw: u,
+          };
+        });
+
       setAgents(list);
     } catch (err) {
       console.error('Fetch agents failed:', err);
@@ -115,6 +144,7 @@ export default function Agent() {
     };
 
     try {
+      // NOTE: still using admin endpoint for create
       const res = await fetch(`${API_BASE}/admin/users/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
@@ -158,7 +188,7 @@ export default function Agent() {
     setIsEditOpen(true);
   };
 
-  // Save edit (PUT as before)
+  // Save edit (PUT to admin/users/:id/)
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     if (!editForm) return;
@@ -201,12 +231,12 @@ export default function Agent() {
     }
   };
 
-  // Toggle active/inactive (PATCH only is_active to avoid validation errors)
+  // Toggle active/inactive (PATCH only is_active)
   const toggleActive = async (agent) => {
     const newState = !Boolean(agent.is_active);
     try {
       const res = await fetch(`${API_BASE}/admin/users/${agent.id}/`, {
-        method: 'PATCH', // <-- PATCH so server won't require name/email
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
         body: JSON.stringify({ is_active: newState }),
       });
@@ -279,7 +309,6 @@ export default function Agent() {
 
   // Manage properties -> navigate to route with query param
   const manageProperties = (agent) => {
-    // navigates to route and attaches agent id as query param
     navigate(
       `/dashboard/admin-manage-property?agent=${encodeURIComponent(agent.id)}`
     );
@@ -303,14 +332,29 @@ export default function Agent() {
 
       {loading && (
         <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
-            <div className="bg-white/95 p-6 rounded-lg shadow-lg flex flex-col items-center pointer-events-auto">
-              <svg className="animate-spin h-10 w-10 text-teal-600 mb-3" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-              </svg>
-              <div className="text-sm text-gray-700">Loading Resources</div>
-            </div>
+          <div className="bg-white/95 p-6 rounded-lg shadow-lg flex flex-col items-center pointer-events-auto">
+            <svg
+              className="animate-spin h-10 w-10 text-teal-600 mb-3"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+                fill="none"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+              />
+            </svg>
+            <div className="text-sm text-gray-700">Loading Agents...</div>
           </div>
+        </div>
       )}
 
       {/* Add modal */}
@@ -361,7 +405,7 @@ export default function Agent() {
               </div>
 
               <div>
-                <label className="block text-gray-700 text-sm font-medium">
+                <label className="block text-gray-700 text.sm font-medium">
                   Phone
                 </label>
                 <input
@@ -386,7 +430,6 @@ export default function Agent() {
                   className="w-full border px-3 py-2 rounded"
                 >
                   <option value="agent">Agent</option>
-                 
                 </select>
               </div>
 
@@ -429,7 +472,10 @@ export default function Agent() {
                   type="checkbox"
                   checked={Boolean(addForm.is_active)}
                   onChange={(e) =>
-                    setAddForm((p) => ({ ...p, is_active: e.target.checked }))
+                    setAddForm((p) => ({
+                      ...p,
+                      is_active: e.target.checked,
+                    }))
                   }
                 />
                 <label htmlFor="is_active" className="text-sm text-gray-700">
@@ -519,7 +565,6 @@ export default function Agent() {
                   className="w-full border px-3 py-2 rounded"
                 >
                   <option value="agent">Agent</option>
-                 
                 </select>
               </div>
 
@@ -530,7 +575,10 @@ export default function Agent() {
                 <select
                   value={editForm.permission}
                   onChange={(e) =>
-                    setEditForm((p) => ({ ...p, permission: e.target.value }))
+                    setEditForm((p) => ({
+                      ...p,
+                      permission: e.target.value,
+                    }))
                   }
                   className="w-full border px-3 py-2 rounded"
                 >
@@ -559,7 +607,10 @@ export default function Agent() {
                   type="checkbox"
                   checked={Boolean(editForm.is_active)}
                   onChange={(e) =>
-                    setEditForm((p) => ({ ...p, is_active: e.target.checked }))
+                    setEditForm((p) => ({
+                      ...p,
+                      is_active: e.target.checked,
+                    }))
                   }
                 />
                 <label htmlFor="edit_active" className="text-sm text-gray-700">
