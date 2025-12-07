@@ -21,6 +21,10 @@ interface Rate {
 
 interface RatesBookingInformationProps {
   booking_rate_start?: Rate[];
+  /** Flat array from API, e.g.
+   * ['Jan 20 - Jan 30', '10 Nights', '10000', 'Feb 20 - Feb 25', '5 Nights', '5000', ...]
+   */
+  booking_rate?: (string | number)[];
   price?: string | number;
 }
 
@@ -80,13 +84,55 @@ const generateDynamicRates = (price?: string | number): Rate[] => {
   });
 };
 
+/**
+ * Convert flat booking_rate array from backend into Rate[]
+ * Example input:
+ * [
+ *   'Jan 20 - Jan 30', '10 Nights', '10000',
+ *   'Feb 20 - Feb 25', '5 Nights', '5000',
+ *   'Dec 10 - Dec 20', 'Quas impedit quia e', '10000'
+ * ]
+ */
+const parseFlatBookingRate = (arr: (string | number)[]): Rate[] => {
+  if (!Array.isArray(arr) || arr.length === 0) return [];
+
+  const rows: Rate[] = [];
+  for (let i = 0; i < arr.length; i += 3) {
+    const period = arr[i] !== undefined ? String(arr[i]) : "";
+    const minStay = arr[i + 1] !== undefined ? String(arr[i + 1]) : "";
+    const rateRaw = arr[i + 2] !== undefined ? arr[i + 2] : 0;
+    const rateNum = Number(rateRaw) || 0;
+
+    // Ignore completely empty rows
+    if (!period && !minStay && !rateNum) continue;
+
+    rows.push({
+      id: rows.length + 1,
+      period,
+      min_stay: minStay,
+      rate: rateNum,
+    });
+  }
+
+  return rows;
+};
+
 const RatesBookingInformation: React.FC<RatesBookingInformationProps> = ({
   booking_rate_start = [],
+  booking_rate = [],
   price,
 }) => {
   console.log("RatesBookingInformation — incoming price:", price);
+  console.log("RatesBookingInformation — booking_rate:", booking_rate);
+  console.log("RatesBookingInformation — booking_rate_start:", booking_rate_start);
 
   const rows = useMemo(() => {
+    // 1️⃣ Prefer flat booking_rate from API if present
+    if (Array.isArray(booking_rate) && booking_rate.length > 0) {
+      return parseFlatBookingRate(booking_rate);
+    }
+
+    // 2️⃣ Fallback to structured booking_rate_start if present
     if (Array.isArray(booking_rate_start) && booking_rate_start.length > 0) {
       return booking_rate_start.map((r, idx) => ({
         ...r,
@@ -94,10 +140,14 @@ const RatesBookingInformation: React.FC<RatesBookingInformationProps> = ({
         rate: typeof r.rate === "number" ? r.rate : Number(r.rate) || 0,
       }));
     }
-    return generateDynamicRates(price);
-  }, [booking_rate_start, price]);
 
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    // 3️⃣ Fallback: generate dynamic from price
+    return generateDynamicRates(price);
+  }, [booking_rate, booking_rate_start, price]);
+
+  const handleImageError = (
+    e: React.SyntheticEvent<HTMLImageElement, Event>
+  ) => {
     const t = e.currentTarget;
     t.onerror = null;
     t.src = FALLBACK_IMAGE;
@@ -119,6 +169,7 @@ const RatesBookingInformation: React.FC<RatesBookingInformationProps> = ({
         </p>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+          {/* Rates Table */}
           <div className="lg:col-span-7 bg-white shadow-xl rounded-xl overflow-hidden border border-gray-100">
             <div className="grid grid-cols-3 bg-teal-600 text-white font-semibold text-lg p-4">
               <div className="p-2">Rental Period</div>
@@ -127,7 +178,8 @@ const RatesBookingInformation: React.FC<RatesBookingInformationProps> = ({
             </div>
 
             {rows.map((r) => {
-              const nights = parseInt(String(r.min_stay).replace(/\D/g, ""), 10) || 1;
+              const nights =
+                parseInt(String(r.min_stay).replace(/\D/g, ""), 10) || 1;
               const calculated = nights * (Number(r.rate) || 0);
 
               return (
@@ -147,6 +199,7 @@ const RatesBookingInformation: React.FC<RatesBookingInformationProps> = ({
             })}
           </div>
 
+          {/* Side Image */}
           <div className="lg:col-span-5 bg-white shadow-xl rounded-xl overflow-hidden">
             <img
               src={FALLBACK_IMAGE}
@@ -156,8 +209,6 @@ const RatesBookingInformation: React.FC<RatesBookingInformationProps> = ({
               style={{ minHeight: "300px" }}
             />
           </div>
-
-         
         </div>
       </div>
     </div>
