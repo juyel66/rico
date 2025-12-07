@@ -448,12 +448,20 @@ export default function BookingManagement(): JSX.Element {
 
               {!loading && filtered.length === 0 && (
                 <tr>
-                  <td
-                    colSpan={9}
-                    className="px-6 py-6 text-center text-gray-500"
-                  >
-                    No bookings found.
-                  </td>
+                 <td colSpan={9} className="px-6 py-10">
+  <div className="flex items-center justify-center">
+    <div className="bg-white shadow-lg rounded-xl p-8 text-center border border-gray-100 w-full max-w-md">
+   
+      <h3 className="text-lg font-semibold text-gray-800 mb-1">
+        No Booking Found
+      </h3>
+      <p className="text-sm text-gray-500">
+        There are currently no booking records available.
+      </p>
+    </div>
+  </div>
+</td>
+
                 </tr>
               )}
             </tbody>
