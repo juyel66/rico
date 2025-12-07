@@ -37,7 +37,18 @@ const SignatureCardContainer: React.FC<Props> = ({ items = [], loading = false, 
         Our <span className="text-[#009689] italic">Signature</span> Villas
       </h2>
 
-      {loading && <div className="text-center text-gray-600 mb-6">Loading villas…</div>}
+      {loading && <div className="w-full flex justify-center items-center my-8">
+  <div className="w-full max-w-md bg-white border border-gray-200 shadow-md rounded-2xl px-6 py-8 flex flex-col items-center justify-center">
+    <div className="mb-3">
+      {/* Spinner */}
+      <div className="h-10 w-10 rounded-full border-4 border-gray-200 border-t-teal-600 animate-spin" />
+    </div>
+    <p className="text-sm font-medium text-gray-800">Loading villas…</p>
+    <p className="text-xs text-gray-500 mt-1">
+      Please wait a moment while we prepare the listings for you.
+    </p>
+  </div>
+</div>}
 
       {error && (
         <div className="bg-red-50 border border-red-100 text-red-700 p-3 rounded mb-6 text-center">
