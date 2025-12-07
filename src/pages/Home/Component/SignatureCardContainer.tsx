@@ -63,7 +63,37 @@ const SignatureCardContainer: React.FC<Props> = ({ items = [], loading = false, 
           ))
         ) : (
           !loading && (
-            <div className="col-span-full text-center text-gray-600">No villas found.</div>
+     <div className="col-span-full flex justify-center py-10">
+  <div className="max-w-md w-full bg-white rounded-2xl shadow-lg border border-teal-100 px-6 py-8 flex flex-col items-center animate-[fadeIn_0.5s_ease-out]">
+    {/* Animated icon */}
+    <div className="w-12 h-12 rounded-full bg-teal-50 flex items-center justify-center mb-4 animate-bounce">
+      <svg
+        className="w-7 h-7 text-teal-600"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75V19.5A1.5 1.5 0 006 21h12a1.5 1.5 0 001.5-1.5V9.75M9.75 21V15.75h4.5V21"
+        />
+      </svg>
+    </div>
+
+    <h3 className="text-lg font-semibold text-gray-900 mb-1">
+      Property not found
+    </h3>
+
+    <p className="text-sm text-gray-600 text-center mt-1">
+      We couldn&apos;t find any villas for your current selection.
+      Try changing your filters or explore other destinations.
+    </p>
+  </div>
+</div>
+
           )
         )}
       </div>
