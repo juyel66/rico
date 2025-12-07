@@ -274,7 +274,7 @@ const Analytics = () => {
   );
 
   const AgentPerformanceChart = () => (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-sm pl-4 pt-4 mt-6">
+    <div className="bg-white border border-gray-200 rounded-xl shadow-sm pl-4 pt-4 mt-6 pb-4">
       <h2 className="text-xl font-semibold text-gray-800">Agent Performance</h2>
       <p className="text-gray-500 text-sm mb-4">Properties assigned & views</p>
 
