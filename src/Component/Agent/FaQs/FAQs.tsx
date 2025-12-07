@@ -1,6 +1,6 @@
 // File: FAQs.tsx
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, ChevronRight, ChevronDown } from 'lucide-react';
+import { Search, ChevronRight, ChevronDown, Delete } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 // ---- CONFIG ----
@@ -76,9 +76,15 @@ const FAQItem: React.FC<FAQItemProps> = ({ faq, onDelete }) => {
               e.stopPropagation();
               onDelete?.(faq.id);
             }}
-            className="text-xs text-red-500 hover:text-red-700"
+            className="text-xs text-red-500 hover:text-red-700 cursor-pointer p-2 rounded-lg border border-red-200 hover:bg-red-50 transition"
           >
-            Delete
+             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                              <path
+                                fillRule="evenodd"
+                                d="M6 2a1 1 0 00-1 1v1H3.5A1.5 1.5 0 002 5.5V6h16v-.5A1.5 1.5 0 0016.5 4H15V3a1 1 0 00-1-1H6zM4 7v9.5A1.5 1.5 0 005.5 18h9A1.5 1.5 0 0016 16.5V7H4zm3 2a1 1 0 012 0v6a1 1 0 11-2 0V9zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V9z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
           </button>
          </div>
 
