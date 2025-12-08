@@ -419,9 +419,9 @@ const AdminDashboard = () => {
         <Link to="/dashboard/admin-agent" className="bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm">
           <img src="https://res.cloudinary.com/dqkczdjjs/image/upload/v1760922664/Icon_38_h9ps9e.png" alt="" /> Add Agent
         </Link>
-        <Link to="/dashboard/admin-dashboard" className="bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm">
+        {/* <Link to="/dashboard/admin-dashboard" className="bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm">
           <img src="https://res.cloudinary.com/dqkczdjjs/image/upload/v1760922664/Icon_37_ajwrle.png" alt="" /> Bulk Upload
-        </Link>
+        </Link> */}
       </div>
 
       {/* Dashboard cards */}
